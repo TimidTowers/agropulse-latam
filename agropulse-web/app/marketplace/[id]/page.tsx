@@ -1,0 +1,318 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Clock,
+  Package,
+  ShieldCheck,
+  Star,
+  Thermometer,
+  Droplets,
+  QrCode,
+} from "lucide-react";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Container } from "@/components/ui/Container";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { getProductById, products } from "@/lib/mock-data/products";
+import { formatDate } from "@/lib/utils";
+import { formatPrice, getCountry } from "@/lib/countries";
+import { AddToCartButton } from "@/components/marketplace/AddToCartButton";
+
+export async function generateStaticParams() {
+  return products.map((p) => ({ id: p.id }));
+}
+
+export async function generateMetadata(
+  props: PageProps<"/marketplace/[id]">,
+): Promise<Metadata> {
+  const { id } = await props.params;
+  const p = getProductById(id);
+  if (!p) return { title: "Lote no encontrado — AgroPulse" };
+  return {
+    title: `${p.nombre} — ${p.productor.nombre} | AgroPulse`,
+    description: p.descripcion,
+  };
+}
+
+export default async function ProductPage(
+  props: PageProps<"/marketplace/[id]">,
+) {
+  const { id } = await props.params;
+  const p = getProductById(id);
+  if (!p) notFound();
+
+  const urgVariant =
+    p.urgencia === "alta"
+      ? "danger"
+      : p.urgencia === "media"
+        ? "warning"
+        : "success";
+  const country = getCountry(p.country);
+
+  const tempOk =
+    p.condicionesIoT.temperaturaC >= p.condicionesIoT.rangoOptimoTemp[0] &&
+    p.condicionesIoT.temperaturaC <= p.condicionesIoT.rangoOptimoTemp[1];
+  const humOk =
+    p.condicionesIoT.humedadPct >= p.condicionesIoT.rangoOptimoHumedad[0] &&
+    p.condicionesIoT.humedadPct <= p.condicionesIoT.rangoOptimoHumedad[1];
+
+  return (
+    <>
+      <Navbar />
+      <main className="flex-1 bg-background">
+        <Container className="py-10">
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink mb-3"
+          >
+            <ArrowLeft size={14} /> Volver al marketplace
+          </Link>
+          <nav className="mb-5 text-xs text-muted flex items-center gap-2 flex-wrap" aria-label="Breadcrumb">
+            <Link href="/marketplace" className="hover:text-ink">Marketplace</Link>
+            <span>/</span>
+            <span className="inline-flex items-center gap-1">
+              <span aria-hidden="true">{country.flag}</span>
+              {country.name}
+            </span>
+            <span>/</span>
+            <span>{p.categoria}</span>
+            <span>/</span>
+            <span className="text-ink font-medium">{p.nombre}</span>
+          </nav>
+
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10">
+            {/* Galería */}
+            <div className="space-y-3">
+              <div className="aspect-[5/4] rounded-2xl overflow-hidden bg-surface-2 border border-border-soft">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.imagen}
+                  alt={p.nombre}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {p.galeria.map((g, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square rounded-xl overflow-hidden bg-surface-2 border border-border-soft"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={g}
+                      alt={`${p.nombre} - ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Detalle */}
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge variant="brand">{p.categoria}</Badge>
+                <Badge variant={urgVariant}>
+                  {p.urgencia === "alta"
+                    ? "Vida útil corta · priorizar"
+                    : p.urgencia === "media"
+                      ? "Vender pronto"
+                      : "Stock fresco"}
+                </Badge>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
+                {p.nombre}
+              </h1>
+              <p className="mt-2 text-muted">
+                Lote{" "}
+                <span className="font-mono text-ink">{p.loteId}</span>
+              </p>
+
+              <div className="mt-5 flex items-end gap-2">
+                <p className="text-4xl font-semibold tracking-tight text-ink">
+                  {formatPrice(p.precio, country)}
+                </p>
+                <p className="pb-1.5 text-muted">por {p.unidad}</p>
+              </div>
+              <p className="text-sm text-muted">
+                Stock disponible:{" "}
+                <strong className="text-ink">
+                  {p.stock.toLocaleString(country.locale)} {p.unidad}
+                </strong>
+              </p>
+
+              <p className="mt-6 text-ink/85 leading-relaxed">{p.descripcion}</p>
+
+              <div className="mt-7 flex flex-wrap gap-2">
+                {p.certificaciones.map((c) => (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border-soft bg-surface px-3 py-1 text-xs text-ink/80"
+                  >
+                    <ShieldCheck size={12} className="text-brand" />
+                    {c}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <AddToCartButton product={p} />
+                <Link href={`/trazabilidad/${p.loteId}`}>
+                  <Button size="xl" variant="outline">
+                    <QrCode size={16} />
+                    Ver trazabilidad
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Productor */}
+              <div className="mt-8 rounded-2xl border border-border-soft bg-surface p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted">
+                      Productor
+                    </p>
+                    <h3 className="mt-1 font-semibold text-ink">
+                      {p.productor.nombre}
+                    </h3>
+                    <p className="text-sm text-muted">
+                      {p.productor.region}, {p.productor.estado} ·{" "}
+                      {p.productor.yearsActive} años de operación
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-warm">
+                    <Star size={14} fill="currentColor" stroke="none" />
+                    <strong className="text-ink text-sm">
+                      {p.productor.rating.toFixed(1)}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Info adicional */}
+          <div className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-border-soft bg-surface p-5">
+              <Calendar size={18} className="text-brand" />
+              <p className="mt-3 text-xs uppercase tracking-wider text-muted">
+                Fecha cosecha
+              </p>
+              <p className="mt-1 font-semibold text-ink">
+                {formatDate(p.fechaCosecha)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border-soft bg-surface p-5">
+              <Clock size={18} className="text-brand" />
+              <p className="mt-3 text-xs uppercase tracking-wider text-muted">
+                Vida útil
+              </p>
+              <p className="mt-1 font-semibold text-ink">
+                {p.vidaUtilDias} días
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border-soft bg-surface p-5">
+              <Package size={18} className="text-brand" />
+              <p className="mt-3 text-xs uppercase tracking-wider text-muted">
+                Stock total
+              </p>
+              <p className="mt-1 font-semibold text-ink">
+                {p.stock.toLocaleString(country.locale)} {p.unidad}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border-soft bg-surface p-5">
+              <MapPin size={18} className="text-brand" />
+              <p className="mt-3 text-xs uppercase tracking-wider text-muted">
+                Origen
+              </p>
+              <p className="mt-1 font-semibold text-ink">
+                {p.productor.estado}
+              </p>
+            </div>
+          </div>
+
+          {/* Condiciones IoT en vivo */}
+          <section className="mt-12 rounded-2xl border border-border-soft bg-surface p-7">
+            <div className="flex items-center justify-between mb-6 gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-ink">
+                  Condiciones IoT del lote
+                </h2>
+                <p className="text-sm text-muted">
+                  Sensor{" "}
+                  <span className="font-mono text-ink">{p.sensorId}</span> ·
+                  última lectura{" "}
+                  {new Date(p.condicionesIoT.ultimaLectura).toLocaleString(
+                    "es-MX",
+                  )}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-2 text-xs text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                En vivo
+              </span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div
+                className={`rounded-xl border p-5 ${tempOk ? "border-emerald-200 bg-emerald-50/60" : "border-amber-200 bg-amber-50/60"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Thermometer
+                      size={18}
+                      className={tempOk ? "text-emerald-700" : "text-amber-700"}
+                    />
+                    <span className="text-sm font-medium text-ink">
+                      Temperatura
+                    </span>
+                  </div>
+                  <Badge variant={tempOk ? "success" : "warning"}>
+                    {tempOk ? "Óptima" : "Atención"}
+                  </Badge>
+                </div>
+                <p className="mt-4 text-4xl font-semibold tracking-tight text-ink">
+                  {p.condicionesIoT.temperaturaC.toFixed(1)}°C
+                </p>
+                <p className="text-xs text-muted mt-1">
+                  Rango óptimo: {p.condicionesIoT.rangoOptimoTemp[0]}°C –{" "}
+                  {p.condicionesIoT.rangoOptimoTemp[1]}°C
+                </p>
+              </div>
+              <div
+                className={`rounded-xl border p-5 ${humOk ? "border-emerald-200 bg-emerald-50/60" : "border-amber-200 bg-amber-50/60"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Droplets
+                      size={18}
+                      className={humOk ? "text-emerald-700" : "text-amber-700"}
+                    />
+                    <span className="text-sm font-medium text-ink">
+                      Humedad
+                    </span>
+                  </div>
+                  <Badge variant={humOk ? "success" : "warning"}>
+                    {humOk ? "Óptima" : "Atención"}
+                  </Badge>
+                </div>
+                <p className="mt-4 text-4xl font-semibold tracking-tight text-ink">
+                  {p.condicionesIoT.humedadPct.toFixed(0)}%
+                </p>
+                <p className="text-xs text-muted mt-1">
+                  Rango óptimo: {p.condicionesIoT.rangoOptimoHumedad[0]}% –{" "}
+                  {p.condicionesIoT.rangoOptimoHumedad[1]}%
+                </p>
+              </div>
+            </div>
+          </section>
+        </Container>
+      </main>
+      <Footer />
+    </>
+  );
+}
