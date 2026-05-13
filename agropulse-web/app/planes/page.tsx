@@ -7,13 +7,17 @@ import { Footer } from "@/components/layout/Footer";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { plans } from "@/lib/mock-data/plans";
-import { cn } from "@/lib/utils";
+import { CurrencyToggle } from "@/components/planes/CurrencyToggle";
+import { BillingToggle } from "@/components/planes/BillingToggle";
+import { PlanCards } from "@/components/planes/PlanCards";
+import { RatesDisclaimer } from "@/components/planes/RatesDisclaimer";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { resolveUserCurrency, type CurrencyCode } from "@/lib/currency/rates";
 
 export const metadata: Metadata = {
   title: "Planes y precios — AgroPulse",
   description:
-    "Planes SaaS para productores agrícolas en LATAM. Desde $1,490 MXN/mes incluyendo sensores IoT.",
+    "Planes SaaS para productores agrícolas en LATAM. Precios en USD, conviertes a tu moneda local con un click.",
 };
 
 const comparativa = [
@@ -57,12 +61,16 @@ const comparativa = [
 
 const faqs = [
   {
+    q: "¿Por qué los precios están en dólares (USD)?",
+    a: "USD es la moneda contable de AgroPulse para operar en 10 países LATAM. Puedes ver el equivalente en tu moneda local con el selector de la parte superior; la facturación oficial se emite en USD.",
+  },
+  {
     q: "¿Qué pasa si necesito más sensores?",
-    a: "Puedes añadir sensores individuales a tu plan por $390 MXN/mes cada uno. En Enterprise no hay tope.",
+    a: "Puedes añadir sensores individuales a tu plan por USD $20/mes cada uno. En Enterprise no hay tope.",
   },
   {
     q: "¿Hay periodo de prueba?",
-    a: "Sí, todos los planes incluyen 30 días gratis sin tarjeta. Solo se cobran los sensores físicos enviados.",
+    a: "Sí, todos los planes incluyen 14 a 30 días gratis sin tarjeta. Solo se cobran los sensores físicos enviados.",
   },
   {
     q: "¿Cuál es la comisión del marketplace?",
@@ -73,12 +81,8 @@ const faqs = [
     a: "Sí, en cualquier momento. Si subes de plan, se prorratea la diferencia. Si bajas, aplica al ciclo siguiente.",
   },
   {
-    q: "¿Los sensores son míos o rentados?",
-    a: "En Básico y Pro están en modalidad SaaS (incluidos). En Enterprise puedes optar por compra directa con descuento.",
-  },
-  {
-    q: "¿Cómo se factura?",
-    a: "Facturación electrónica CFDI 4.0 mensual. Aceptamos transferencia, tarjeta corporativa y domiciliación bancaria.",
+    q: "¿Cuánto ahorro pagando anualmente?",
+    a: "Plan Básico ahorra 15% anual (≈2 meses gratis). Plan Pro ahorra 17%. Enterprise se negocia con tu CSM.",
   },
 ];
 
@@ -94,7 +98,13 @@ function FeatureValue({
   return <span className="text-sm text-ink">{v}</span>;
 }
 
-export default function PlanesPage() {
+export default async function PlanesPage() {
+  const me = await getCurrentUser();
+  let defaultCurrency: CurrencyCode = "USD";
+  if (me) {
+    defaultCurrency = resolveUserCurrency(me.preferredCurrency, me.country);
+  }
+
   return (
     <>
       <Navbar />
@@ -109,66 +119,23 @@ export default function PlanesPage() {
               <span className="text-brand-gradient">Crece a tu ritmo.</span>
             </h1>
             <p className="mt-5 max-w-2xl mx-auto text-lg text-muted">
-              Todos los planes incluyen sensores IoT, plataforma web, marketplace
-              B2B y 30 días de prueba sin compromiso.
+              Precios en USD, conviertes a tu moneda local con un click.
+              Todos los planes incluyen sensores IoT, plataforma web,
+              marketplace B2B y prueba sin compromiso.
             </p>
+
+            {/* Selector divisa + billing */}
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
+              <CurrencyToggle defaultCurrency={defaultCurrency} />
+              <BillingToggle />
+            </div>
           </Container>
         </section>
 
         {/* Plans cards */}
         <Container className="py-14">
-          <div className="grid md:grid-cols-3 gap-5">
-            {plans.map((p) => (
-              <div
-                key={p.id}
-                className={cn(
-                  "relative rounded-2xl border bg-surface p-8 flex flex-col",
-                  p.destacado
-                    ? "border-brand shadow-lg ring-1 ring-brand/20"
-                    : "border-border-soft shadow-sm",
-                )}
-              >
-                {p.destacado && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand text-white text-xs font-medium px-3 py-1">
-                    Más popular
-                  </span>
-                )}
-                <h2 className="text-xl font-semibold text-ink tracking-tight">
-                  {p.nombre}
-                </h2>
-                <p className="text-sm text-muted mt-1">{p.sensores}</p>
-                <p className="mt-6">
-                  <span className="text-4xl font-semibold text-ink tracking-tight">
-                    {p.precio}
-                  </span>
-                  <span className="ml-2 text-sm text-muted">{p.periodo}</span>
-                </p>
-                <ul className="mt-6 flex flex-col gap-2.5 flex-1">
-                  {p.features.map((f) => (
-                    <li
-                      key={f}
-                      className="flex items-start gap-2 text-sm text-ink/85"
-                    >
-                      <Check
-                        size={14}
-                        className="mt-1 text-brand flex-shrink-0"
-                      />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/contacto" className="mt-8">
-                  <Button
-                    className="w-full"
-                    variant={p.destacado ? "primary" : "outline"}
-                    size="lg"
-                  >
-                    {p.cta}
-                  </Button>
-                </Link>
-              </div>
-            ))}
-          </div>
+          <PlanCards />
+          <RatesDisclaimer />
         </Container>
 
         {/* Comparison table */}

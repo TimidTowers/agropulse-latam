@@ -12,6 +12,7 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth?.user;
+  const role = req.auth?.user?.role;
   const { pathname, search } = req.nextUrl;
 
   const PROTECTED = [
@@ -25,6 +26,7 @@ export default auth((req) => {
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   const isAdmin = pathname.startsWith("/admin");
+  const isDashboard = pathname.startsWith("/dashboard");
 
   if (isProtected && !isLoggedIn) {
     const url = new URL("/login", req.nextUrl);
@@ -32,7 +34,19 @@ export default auth((req) => {
     return NextResponse.redirect(url);
   }
 
-  if (isAdmin && isLoggedIn && req.auth?.user?.role !== "admin") {
+  if (isAdmin && isLoggedIn && role !== "admin") {
+    const url = new URL("/", req.nextUrl);
+    return NextResponse.redirect(url);
+  }
+
+  // Dashboard de productor: SOLO productor o admin
+  // Cliente y logística se redirigen a sus áreas correspondientes
+  if (isDashboard && isLoggedIn && role !== "productor" && role !== "admin") {
+    if (role === "cliente" || role === "logistica") {
+      const url = new URL("/pedidos", req.nextUrl);
+      return NextResponse.redirect(url);
+    }
+    // rol desconocido → home
     const url = new URL("/", req.nextUrl);
     return NextResponse.redirect(url);
   }

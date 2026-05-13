@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Sprout, Plus, Edit3, ArrowRight, Calendar, Package, AlertTriangle } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { requireProductorDashboard } from "@/lib/dashboard-guard";
 import { lotsDb } from "@/lib/db/store";
-import { formatPriceByCode, getCountry } from "@/lib/countries";
+import { getCountry } from "@/lib/countries";
+import {
+  CURRENCIES,
+  COUNTRY_TO_CURRENCY,
+  convertCurrency,
+  formatCurrency,
+  resolveUserCurrency,
+} from "@/lib/currency/rates";
 import type { Lot } from "@/lib/db/types";
 
 export const metadata: Metadata = {
@@ -41,11 +47,9 @@ function statusBadge(s: Lot["status"]) {
 }
 
 export default async function LotesPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?from=/dashboard/lotes");
-  if (user.role !== "productor" && user.role !== "admin") {
-    redirect("/dashboard");
-  }
+  const user = await requireProductorDashboard("/dashboard/lotes");
+  const currency = resolveUserCurrency(user.preferredCurrency, user.country);
+  const info = CURRENCIES[currency];
 
   const lots =
     user.role === "admin" ? lotsDb.listAll() : lotsDb.listByProductor(user.id);
@@ -65,12 +69,22 @@ export default async function LotesPage() {
             {user.role === "admin" && " (vista admin — todos los productores)"}.
           </p>
         </div>
-        <Link href="/dashboard/lotes/nuevo">
-          <Button size="lg">
-            <Plus size={16} />
-            Crear nuevo lote
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/perfil#currency"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-ink border border-border-soft rounded-lg px-2.5 py-1.5 hover:bg-surface-2"
+            title="Cambiar moneda preferida"
+          >
+            <span aria-hidden>{info.flag}</span>
+            <span className="font-mono">{currency}</span>
+          </Link>
+          <Link href="/dashboard/lotes/nuevo">
+            <Button size="lg">
+              <Plus size={16} />
+              Crear nuevo lote
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {lots.length === 0 ? (
@@ -105,6 +119,14 @@ export default async function LotesPage() {
               const country = getCountry(lot.country);
               const daysToExp = Math.floor(
                 (new Date(lot.expirationDate).getTime() - Date.now()) / 86_400_000,
+              );
+              const lotCurrency =
+                (lot.currency as keyof typeof CURRENCIES) ??
+                COUNTRY_TO_CURRENCY[lot.country];
+              const precioConv = convertCurrency(
+                lot.pricePerUnit,
+                lotCurrency,
+                currency,
               );
               return (
                 <li
@@ -141,7 +163,7 @@ export default async function LotesPage() {
                       Precio:
                     </span>
                     <p className="text-sm font-medium text-ink tabular-nums">
-                      {formatPriceByCode(lot.pricePerUnit, lot.country)}
+                      {formatCurrency(precioConv, currency)}
                     </p>
                     <p className="text-[10px] text-muted">por {lot.unit}</p>
                   </div>

@@ -9,6 +9,7 @@ import {
   ScrollText,
   Bell,
   Sprout,
+  Mail,
   LogOut,
 } from "lucide-react";
 import { AdminSignOut } from "./AdminSignOut";
@@ -19,6 +20,7 @@ const nav = [
   { href: "/admin/pedidos", label: "Pedidos", icon: Package },
   { href: "/admin/lotes", label: "Lotes", icon: Sprout },
   { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
+  { href: "/admin/email-preview", label: "Email templates", icon: Mail },
   { href: "/admin/logs", label: "Audit logs", icon: ScrollText },
 ];
 

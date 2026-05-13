@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { requireProductorDashboard } from "@/lib/dashboard-guard";
 import { getCountry } from "@/lib/countries";
 import { LotForm } from "@/components/dashboard-lots/LotForm";
 
@@ -12,12 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewLotPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login?from=/dashboard/lotes/nuevo");
-  if (user.role !== "productor" && user.role !== "admin") {
-    redirect("/dashboard");
-  }
-
+  const user = await requireProductorDashboard("/dashboard/lotes/nuevo");
   const country = getCountry(user.country);
 
   return (

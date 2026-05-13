@@ -10,6 +10,7 @@
  *   son por compatibilidad futura.
  */
 import { SEED_USERS, SEED_PAYMENT_METHODS } from "./seed";
+import { SEED_ORDERS } from "./seed-orders";
 import type {
   User,
   PublicUser,
@@ -67,6 +68,10 @@ function seedIfNeeded(): void {
   if (s.seeded) return;
   for (const u of SEED_USERS) s.users.set(u.id, u);
   for (const pm of SEED_PAYMENT_METHODS) s.paymentMethods.set(pm.id, pm);
+  // Pedidos demo persistentes (IDs determinísticos, NO sobrescriben si ya existen)
+  for (const o of SEED_ORDERS) {
+    if (!s.orders.has(o.id)) s.orders.set(o.id, o);
+  }
   s.seeded = true;
 }
 

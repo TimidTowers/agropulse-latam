@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { requireProductorDashboard } from "@/lib/dashboard-guard";
 import { getCountry } from "@/lib/countries";
 import { lotsDb } from "@/lib/db/store";
 import { LotForm } from "@/components/dashboard-lots/LotForm";
@@ -15,12 +15,8 @@ export const metadata: Metadata = {
 export default async function EditLotPage(
   props: PageProps<"/dashboard/lotes/[id]">,
 ) {
-  const user = await getCurrentUser();
   const { id } = await props.params;
-  if (!user) redirect(`/login?from=/dashboard/lotes/${id}`);
-  if (user.role !== "productor" && user.role !== "admin") {
-    redirect("/dashboard");
-  }
+  const user = await requireProductorDashboard(`/dashboard/lotes/${id}`);
 
   const lot = lotsDb.findById(id);
   if (!lot) notFound();

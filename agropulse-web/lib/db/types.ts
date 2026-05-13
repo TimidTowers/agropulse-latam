@@ -4,6 +4,7 @@
  * Keep this in sync with seed data and store.
  */
 import type { CountryCode } from "@/lib/countries";
+import type { CurrencyCode } from "@/lib/currency/rates";
 
 // ============================================================================
 // USERS & AUTH
@@ -43,6 +44,11 @@ export interface User {
   /** UI/email flags */
   emailVerified: boolean;
   marketingOptIn?: boolean;
+  /**
+   * Moneda preferida del usuario para visualización de precios.
+   * Si no se define, se usa la moneda oficial del país (COUNTRY_TO_CURRENCY).
+   */
+  preferredCurrency?: CurrencyCode;
   /** timestamps */
   createdAt: string;
   lastLoginAt?: string;
@@ -60,6 +66,7 @@ export interface PublicUser {
   cooperativa?: string;
   hectareas?: number;
   twoFactorEnabled: boolean;
+  preferredCurrency?: CurrencyCode;
 }
 
 export function toPublicUser(u: User): PublicUser {
@@ -227,6 +234,7 @@ export type AuditAction =
   | "auth.2fa_enabled"
   | "auth.2fa_disabled"
   | "auth.locked"
+  | "auth.access_denied"
   | "order.create"
   | "order.status_change"
   | "order.cancel"

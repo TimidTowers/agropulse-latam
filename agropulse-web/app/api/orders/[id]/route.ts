@@ -7,6 +7,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ordersDb, usersDb, auditDb } from "@/lib/db/store";
 import { ORDER_STATUS_FLOW, type OrderStatus } from "@/lib/db/types";
+import { sendEmail } from "@/lib/notifications/email";
+import { orderStatusEmail } from "@/lib/notifications/templates";
 
 function canView(
   order: { customerId: string; items: { productorId: string }[]; logisticaUserId?: string },
@@ -57,11 +59,10 @@ export async function GET(
   }
   const { id } = await ctx.params;
   const order = ordersDb.findById(id);
-  if (!order) {
+  // Defensa en profundidad: no exponer si existe o no cuando el usuario
+  // no tiene permisos — siempre devolver el mismo 404.
+  if (!order || !canView(order, session.user)) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
-  }
-  if (!canView(order, session.user)) {
-    return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
   return Response.json({ ok: true, order });
 }
@@ -76,11 +77,9 @@ export async function PATCH(
   }
   const { id } = await ctx.params;
   const order = ordersDb.findById(id);
-  if (!order) {
+  // Defensa en profundidad: 404 plano si no existe O no tiene permisos.
+  if (!order || !canView(order, session.user)) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
-  }
-  if (!canView(order, session.user)) {
-    return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 
   let raw: unknown;
@@ -197,6 +196,28 @@ export async function PATCH(
       message: `Pedido ${order.shortCode} → ${status}${note ? ` (${note})` : ""}`,
       metadata: { from: order.status, to: status, note },
     });
+
+    // Notificar al cliente con la plantilla de cambio de estado.
+    const fresh = ordersDb.findById(order.id);
+    if (fresh) {
+      const tpl = orderStatusEmail({
+        order: fresh,
+        newStatus: status,
+        note,
+      });
+      void sendEmail({
+        to: fresh.customerInfo.email,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+        templateId: "order.status_change",
+        metadata: {
+          orderId: fresh.id,
+          shortCode: fresh.shortCode,
+          newStatus: status,
+        },
+      });
+    }
   }
 
   const updated = ordersDb.findById(order.id);

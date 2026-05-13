@@ -7,7 +7,8 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { signupSchema } from "@/lib/auth-schemas";
 import { usersDb, auditDb } from "@/lib/db/store";
-import { sendEmail, AGROPULSE_INBOX } from "@/lib/notifications/email";
+import { sendEmail } from "@/lib/notifications/email";
+import { welcomeEmail } from "@/lib/notifications/templates";
 import type { User, UserAddress } from "@/lib/db/types";
 import type { CountryCode } from "@/lib/countries";
 import { getCountry } from "@/lib/countries";
@@ -101,21 +102,17 @@ export async function POST(req: Request) {
   });
 
   // Email de bienvenida (queue si no hay Resend)
+  const welcome = welcomeEmail({
+    name: user.name,
+    role: user.role,
+    country,
+  });
   void sendEmail({
     to: user.email,
-    subject: "Bienvenido a AgroPulse",
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width:560px; margin:auto; padding:24px;">
-        <h2 style="color:#15803d;">¡Bienvenido a AgroPulse, ${user.name}!</h2>
-        <p>Tu cuenta como <strong>${user.role}</strong> en ${getCountry(country).flag} ${getCountry(country).name} fue creada con éxito.</p>
-        <p>Ya puedes ingresar al ${user.role === "productor" ? "panel de productor" : "marketplace"} desde <a href="https://agropulse.example/login" style="color:#15803d;">agropulse.example</a>.</p>
-        <p style="margin-top:24px; padding:16px; background:#f1f5f9; border-radius:8px; font-size:14px; color:#475569;">
-          ¿Tenés dudas? Escribinos a <a href="mailto:${AGROPULSE_INBOX}">${AGROPULSE_INBOX}</a> o WhatsApp +506 8337 8828.
-        </p>
-        <p style="font-size:12px; color:#94a3b8; margin-top:16px;">Si no creaste esta cuenta, ignorá este correo.</p>
-      </div>
-    `,
-    text: `Bienvenido a AgroPulse, ${user.name}. Tu cuenta como ${user.role} fue creada.`,
+    subject: welcome.subject,
+    html: welcome.html,
+    text: welcome.text,
+    templateId: "auth.welcome",
     metadata: { userId: user.id, kind: "welcome" },
   });
 

@@ -14,6 +14,7 @@ import {
 import { COUNTRIES, type CountryCode } from "@/lib/countries";
 import type { OrderExtended, OrderItem, UserAddress } from "@/lib/db/types";
 import { sendEmail, AGROPULSE_INBOX } from "@/lib/notifications/email";
+import { orderConfirmationEmail } from "@/lib/notifications/templates";
 
 const addressSchema = z.object({
   line1: z.string().min(3),
@@ -237,44 +238,43 @@ export async function POST(req: NextRequest) {
   }
 
   // Email al cliente
+  const clienteTpl = orderConfirmationEmail({
+    order,
+    recipientRole: "cliente",
+  });
   await sendEmail({
     to: user.email,
-    subject: `Pedido ${shortCode} recibido — AgroPulse`,
-    html: `
-      <h1>¡Gracias por tu pedido, ${user.name}!</h1>
-      <p>Tu pedido <strong>${shortCode}</strong> ha sido recibido y los productores ya están notificados.</p>
-      <p>Total: <strong>${total.toLocaleString()} ${country.currency}</strong></p>
-      <p>Método de pago: ${pm.name}</p>
-      <p>Puedes seguir el estado en tu panel: <a href="https://agropulse.cr/pedidos/${id}">Ver pedido</a></p>
-    `,
-    text: `Tu pedido ${shortCode} ha sido recibido. Total: ${total.toLocaleString()} ${country.currency}`,
+    subject: clienteTpl.subject,
+    html: clienteTpl.html,
+    text: clienteTpl.text,
     templateId: "order.created",
     metadata: { orderId: id, shortCode },
   });
 
   // Email a los productores
   if (productorEmails.length > 0) {
+    const productorTpl = orderConfirmationEmail({
+      order,
+      recipientRole: "productor",
+    });
     await sendEmail({
       to: productorEmails,
-      subject: `Nuevo pedido recibido — ${shortCode}`,
-      html: `
-        <h1>Nuevo pedido en AgroPulse</h1>
-        <p>Cliente: ${user.name} (${user.email})</p>
-        <p>Folio: <strong>${shortCode}</strong></p>
-        <p>Items: ${items.length} · Total: ${total.toLocaleString()} ${country.currency}</p>
-        <p>Revisa el pedido en tu dashboard.</p>
-      `,
+      subject: productorTpl.subject,
+      html: productorTpl.html,
+      text: productorTpl.text,
       templateId: "order.created.productor",
       metadata: { orderId: id, shortCode },
     });
   }
 
-  // Email a AgroPulse
+  // Email a AgroPulse (interno, copia del template del cliente)
   await sendEmail({
     to: AGROPULSE_INBOX,
     subject: `[AgroPulse] Nuevo pedido ${shortCode}`,
-    html: `<p>Nuevo pedido creado: ${shortCode} — Total ${total} ${country.currency}</p>`,
+    html: clienteTpl.html,
+    text: `Nuevo pedido creado: ${shortCode} — Total ${total} ${country.currency}`,
     templateId: "order.created.internal",
+    metadata: { orderId: id, shortCode },
   });
 
   return Response.json({ ok: true, order }, { status: 201 });

@@ -6,6 +6,7 @@ import { sessionsDb } from "@/lib/db/store";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
 import { ProfileForm } from "./ProfileForm";
+import { CurrencyPreference } from "@/components/perfil/CurrencyPreference";
 import { getCountry } from "@/lib/countries";
 
 export const metadata: Metadata = {
@@ -39,8 +40,12 @@ export default async function PerfilPage() {
         </header>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
             <ProfileForm user={me} />
+            <CurrencyPreference
+              userCountry={me.country}
+              initialCurrency={me.preferredCurrency}
+            />
           </div>
           <aside className="space-y-6">
             <div className="rounded-2xl border border-border-soft bg-surface p-6 shadow-sm">
