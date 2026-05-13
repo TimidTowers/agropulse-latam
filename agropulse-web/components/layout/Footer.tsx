@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Globe, AtSign, MessageCircle, Mail } from "lucide-react";
+import { Globe, AtSign, MessageCircle, Mail, Phone, MapPin } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
+import { HEADQUARTERS } from "@/lib/countries";
 
 const cols = [
   {
@@ -34,10 +35,10 @@ const cols = [
   {
     title: "Legal",
     links: [
-      { href: "#", label: "Términos de servicio" },
-      { href: "#", label: "Política de privacidad" },
-      { href: "#", label: "Aviso de cookies" },
-      { href: "#", label: "Acuerdo SLA" },
+      { href: "/legal/terminos", label: "Términos de servicio" },
+      { href: "/legal/privacidad", label: "Política de privacidad" },
+      { href: "/legal/cookies", label: "Aviso de cookies" },
+      { href: "/legal/contacto-dpo", label: "Contacto DPO" },
     ],
   },
 ];
@@ -52,25 +53,70 @@ export function Footer() {
               <Logo />
             </Link>
             <p className="mt-4 text-sm text-muted max-w-xs leading-relaxed">
-              El pulso inteligente de tu cosecha. Reducimos las pérdidas
-              post-cosecha con IoT, ML y un marketplace B2B.
+              El pulso inteligente de tu cosecha. AgriTech costarricense que
+              reduce las pérdidas post-cosecha con IoT, ML y un marketplace B2B.
             </p>
-            <div className="mt-6 flex items-center gap-2">
-              {[
-                { Icon: Globe, href: "#", label: "Sitio" },
-                { Icon: AtSign, href: "#", label: "X / Twitter" },
-                { Icon: MessageCircle, href: "#", label: "LinkedIn" },
-                { Icon: Mail, href: "mailto:hola@agropulse.mx", label: "Email" },
-              ].map(({ Icon, href, label }) => (
+
+            <div className="mt-5 space-y-2 text-sm">
+              <p className="inline-flex items-center gap-2 font-medium text-ink">
+                <span aria-hidden="true">🇨🇷</span>
+                <span>Hecho en Costa Rica · Pura Vida AgriTech</span>
+              </p>
+              <p className="inline-flex items-center gap-2 text-muted">
+                <MapPin size={14} className="text-brand" />
+                <span>{HEADQUARTERS.fullAddress}</span>
+              </p>
+              <p>
                 <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
+                  href={`mailto:${HEADQUARTERS.email}`}
+                  className="inline-flex items-center gap-2 text-muted hover:text-ink transition-colors"
                 >
-                  <Icon size={16} />
+                  <Mail size={14} className="text-brand" />
+                  <span>{HEADQUARTERS.email}</span>
                 </a>
-              ))}
+              </p>
+              <p>
+                <a
+                  href={`tel:${HEADQUARTERS.phoneE164}`}
+                  className="inline-flex items-center gap-2 text-muted hover:text-ink transition-colors"
+                >
+                  <Phone size={14} className="text-brand" />
+                  <span>{HEADQUARTERS.phone}</span>
+                </a>
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center gap-2">
+              <a
+                href={HEADQUARTERS.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp AgroPulse"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
+              >
+                <MessageCircle size={16} />
+              </a>
+              <a
+                href={`mailto:${HEADQUARTERS.email}`}
+                aria-label="Email"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
+              >
+                <Mail size={16} />
+              </a>
+              <a
+                href="#"
+                aria-label="LinkedIn"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
+              >
+                <AtSign size={16} />
+              </a>
+              <a
+                href="#"
+                aria-label="Sitio"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
+              >
+                <Globe size={16} />
+              </a>
             </div>
           </div>
 
@@ -97,8 +143,8 @@ export function Footer() {
 
         <div className="mt-12 border-t border-border-soft pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-muted">
-            © {new Date().getFullYear()} AgroPulse Technologies S.A. de C.V.
-            Hecho en Querétaro, México. Presente en 10 países LATAM.
+            © {new Date().getFullYear()} AgroPulse Technologies S.A. · Hecho en
+            San José, Costa Rica 🇨🇷 · Operamos en 10 países LATAM.
           </p>
           <p className="text-xs text-muted">
             ODS 2 · ODS 12 · ODS 13 — Comprometidos con la sostenibilidad.

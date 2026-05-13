@@ -15,10 +15,60 @@ import {
   urgencias,
   getRegionsForCountry,
 } from "@/lib/mock-data/products";
-import { COUNTRIES, type CountryCode } from "@/lib/countries";
+import { COUNTRIES, getCountry, type CountryCode } from "@/lib/countries";
 import { useCountryStore } from "@/lib/stores/country-store";
+import type { Product, ProductoCategoria, Urgencia } from "@/lib/types";
+import type { Lot } from "@/lib/db/types";
 
 const PER_PAGE = 12;
+
+/** Convierte un lote dinámico al shape de Product para reutilizar ProductCard */
+function lotToProduct(lot: Lot): Product {
+  const country = getCountry(lot.country);
+  const daysToExpiry = Math.max(
+    0,
+    Math.floor(
+      (new Date(lot.expirationDate).getTime() - Date.now()) / 86_400_000,
+    ),
+  );
+  return {
+    id: lot.id,
+    slug: lot.productSlug,
+    nombre: lot.productName,
+    categoria: lot.category as ProductoCategoria,
+    country: lot.country,
+    productor: {
+      id: lot.productorId,
+      nombre: lot.productorName,
+      region: lot.region,
+      estado: lot.region,
+      certificaciones: lot.certifications,
+      rating: 4.7,
+      yearsActive: 5,
+    },
+    precio: lot.pricePerUnit,
+    unidad: lot.unit,
+    stock: lot.quantity,
+    fechaCosecha: lot.harvestDate,
+    vidaUtilDias: daysToExpiry,
+    urgencia: lot.urgencia as Urgencia,
+    imagen: lot.images[0] ?? "",
+    galeria: lot.images,
+    certificaciones: lot.certifications,
+    condicionesIoT: {
+      temperaturaC: 14,
+      humedadPct: 80,
+      ultimaLectura: new Date().toISOString(),
+      rangoOptimoTemp: [10, 18],
+      rangoOptimoHumedad: [70, 90],
+    },
+    descripcion: lot.description,
+    sensorId: lot.sensorId ?? "—",
+    loteId: lot.id,
+    /** flag interno usado por MarketplaceClient para marcar como recién publicado */
+    ...({ _isFresh: country && Date.now() - new Date(lot.createdAt).getTime() < 48 * 3600 * 1000 } as object),
+  } as Product & { _isFresh?: boolean };
+}
 
 export function MarketplaceClient() {
   const { country, setCountry, markSelected } = useCountryStore();
@@ -28,8 +78,30 @@ export function MarketplaceClient() {
   const [region, setRegion] = useState("todas");
   const [urgencia, setUrgencia] = useState("todas");
   const [page, setPage] = useState(1);
+  const [dynamicLots, setDynamicLots] = useState<Lot[]>([]);
 
   useEffect(() => setMounted(true), []);
+
+  // Cargar lotes dinámicos del backend
+  useEffect(() => {
+    if (!mounted) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/lots?status=activo&country=${country}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancel && data?.ok && Array.isArray(data.lots)) {
+          setDynamicLots(data.lots);
+        }
+      } catch {
+        // silent: marketplace sigue funcionando con productos estáticos
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [country, mounted]);
 
   // Reset region when country changes
   useEffect(() => {
@@ -43,19 +115,54 @@ export function MarketplaceClient() {
 
   const effectiveCountry: CountryCode = mounted ? country : "MX";
 
-  const filtered = useMemo(() => {
-    return filterProducts({
-      country: effectiveCountry,
-      categoria,
-      region,
-      urgencia,
-      q: q.trim() || undefined,
-    });
-  }, [effectiveCountry, categoria, region, urgencia, q]);
+  const staticFiltered = useMemo(
+    () =>
+      filterProducts({
+        country: effectiveCountry,
+        categoria,
+        region,
+        urgencia,
+        q: q.trim() || undefined,
+      }),
+    [effectiveCountry, categoria, region, urgencia, q],
+  );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const visible = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const totalGlobal = products.length;
+  const dynamicAsProducts = useMemo(
+    () =>
+      dynamicLots
+        .filter((l) => l.country === effectiveCountry)
+        .map(lotToProduct),
+    [dynamicLots, effectiveCountry],
+  );
+
+  const dynamicFiltered = useMemo(() => {
+    return dynamicAsProducts.filter((p) => {
+      if (categoria !== "todas" && p.categoria !== categoria) return false;
+      if (region !== "todas" && p.productor.estado !== region && p.productor.region !== region) {
+        return false;
+      }
+      if (urgencia !== "todas" && p.urgencia !== urgencia) return false;
+      if (q.trim()) {
+        const qLow = q.toLowerCase();
+        if (
+          !p.nombre.toLowerCase().includes(qLow) &&
+          !p.productor.nombre.toLowerCase().includes(qLow)
+        )
+          return false;
+      }
+      return true;
+    });
+  }, [dynamicAsProducts, categoria, region, urgencia, q]);
+
+  // Lotes dinámicos primero (suelen ser más frescos)
+  const combined = useMemo(
+    () => [...dynamicFiltered, ...staticFiltered],
+    [dynamicFiltered, staticFiltered],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(combined.length / PER_PAGE));
+  const visible = combined.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalGlobal = products.length + dynamicLots.length;
   const regionOptions = getRegionsForCountry(effectiveCountry);
   const activeCountry = COUNTRIES.find((c) => c.code === effectiveCountry) ?? COUNTRIES[0];
 
@@ -259,15 +366,20 @@ export function MarketplaceClient() {
                 <span aria-hidden="true" className="mr-1">
                   {activeCountry.flag}
                 </span>
-                Mostrando <strong className="text-ink">{filtered.length}</strong>{" "}
-                lote{filtered.length !== 1 && "s"} en {activeCountry.name}
+                Mostrando <strong className="text-ink">{combined.length}</strong>{" "}
+                lote{combined.length !== 1 && "s"} en {activeCountry.name}
+                {dynamicFiltered.length > 0 && (
+                  <span className="ml-2 text-brand">
+                    ({dynamicFiltered.length} recién publicado{dynamicFiltered.length !== 1 && "s"})
+                  </span>
+                )}
               </p>
               <p className="text-xs text-muted">
                 Página {page} de {totalPages}
               </p>
             </div>
 
-            {filtered.length === 0 ? (
+            {combined.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border-soft bg-surface p-16 text-center">
                 <p className="text-ink font-medium">Sin resultados</p>
                 <p className="mt-1 text-sm text-muted">
@@ -284,9 +396,10 @@ export function MarketplaceClient() {
                   transition={{ duration: 0.25 }}
                   className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5"
                 >
-                  {visible.map((p) => (
-                    <ProductCard key={p.id} product={p} />
-                  ))}
+                  {visible.map((p) => {
+                    const fresh = (p as Product & { _isFresh?: boolean })._isFresh === true;
+                    return <ProductCard key={p.id} product={p} freshBadge={fresh} />;
+                  })}
                 </motion.div>
               </AnimatePresence>
             )}

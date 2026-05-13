@@ -10,14 +10,18 @@ import {
   Settings,
   HelpCircle,
   ChevronLeft,
+  Sprout,
+  Package,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
+  { href: "/dashboard/lotes", label: "Mis lotes", icon: Sprout },
   { href: "/dashboard/sensores", label: "Sensores IoT", icon: Radio },
   { href: "/dashboard/inventario", label: "Inventario", icon: Boxes },
+  { href: "/pedidos", label: "Pedidos", icon: Package },
 ];
 
 const secondaryItems = [

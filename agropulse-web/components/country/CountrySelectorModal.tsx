@@ -70,62 +70,75 @@ export function CountrySelectorModal() {
             <div className="relative px-8 pt-10 pb-6 bg-gradient-to-br from-brand/10 via-accent/5 to-transparent">
               <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-brand mb-3">
                 <MapPin size={13} />
-                Plataforma LATAM
+                Hecho en Costa Rica · Operamos en LATAM
               </div>
               <h2
                 id="country-modal-title"
                 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink"
               >
-                Bienvenido a AgroPulse
+                Bienvenido a AgroPulse 🇨🇷
               </h2>
               <p className="mt-2 text-muted max-w-xl">
-                Selecciona tu país para ver productores, precios y disponibilidad
-                locales. Podrás cambiarlo después desde el menú superior.
+                Somos una empresa costarricense con sede en San José. Selecciona
+                tu país para ver productores, precios y disponibilidad locales.
+                Podrás cambiarlo después desde el menú superior.
               </p>
             </div>
 
             <div className="px-8 py-6">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                {COUNTRIES.map((c, i) => (
-                  <motion.button
-                    key={c.code}
-                    type="button"
-                    onClick={() => handlePick(c.code)}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.05 + i * 0.03, duration: 0.25 }}
-                    whileHover={{ y: -4, scale: 1.04 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border border-border-soft bg-surface hover:border-brand/40 hover:shadow-md hover:bg-brand/[0.03] p-4 transition-all"
-                  >
-                    <span
-                      className="text-4xl leading-none"
-                      role="img"
-                      aria-label={c.name}
+                {COUNTRIES.map((c, i) => {
+                  const isOrigin = c.isOrigin === true;
+                  return (
+                    <motion.button
+                      key={c.code}
+                      type="button"
+                      onClick={() => handlePick(c.code)}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 + i * 0.03, duration: 0.25 }}
+                      whileHover={{ y: -4, scale: 1.04 }}
+                      whileTap={{ scale: 0.97 }}
+                      className={`group relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 transition-all ${
+                        isOrigin
+                          ? "border-brand bg-brand/5 hover:border-brand hover:shadow-lg hover:bg-brand/10 ring-2 ring-brand/20"
+                          : "border-border-soft bg-surface hover:border-brand/40 hover:shadow-md hover:bg-brand/[0.03]"
+                      }`}
                     >
-                      {c.flag}
-                    </span>
-                    <span className="text-sm font-semibold text-ink">
-                      {c.name}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-wider text-muted">
-                      {c.productors.toLocaleString("es-MX")} productores
-                    </span>
-                  </motion.button>
-                ))}
+                      {isOrigin && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
+                          🇨🇷 Mercado origen
+                        </span>
+                      )}
+                      <span
+                        className="text-4xl leading-none"
+                        role="img"
+                        aria-label={c.name}
+                      >
+                        {c.flag}
+                      </span>
+                      <span className="text-sm font-semibold text-ink">
+                        {c.name}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-muted">
+                        {c.productors.toLocaleString("es-CR")} productores
+                      </span>
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
             <div className="px-8 py-5 border-t border-border-soft bg-surface-2/40 flex items-center justify-between gap-3 flex-wrap">
               <p className="text-xs text-muted">
-                10 países · {COUNTRIES.reduce((a, c) => a + c.productors, 0).toLocaleString("es-MX")}{" "}
+                10 países · {COUNTRIES.reduce((a, c) => a + c.productors, 0).toLocaleString("es-CR")}{" "}
                 productores conectados
               </p>
               <button
                 onClick={skip}
                 className="text-sm font-medium text-muted hover:text-ink transition-colors"
               >
-                Seleccionar después (México por defecto)
+                Seleccionar después (Costa Rica por defecto)
               </button>
             </div>
           </motion.div>

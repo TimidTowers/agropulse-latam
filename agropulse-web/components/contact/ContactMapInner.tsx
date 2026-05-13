@@ -15,14 +15,14 @@ const icon = L.icon({
   popupAnchor: [0, -32],
 });
 
-// Oficina en Querétaro (Centro Histórico, aprox.)
-const QRO: [number, number] = [20.5888, -100.3899];
+// Sede AgroPulse — San José, Costa Rica (centro de la ciudad)
+const SAN_JOSE: [number, number] = [9.9281, -84.0907];
 
 export default function ContactMapInner() {
   return (
     <MapContainer
-      center={QRO}
-      zoom={14}
+      center={SAN_JOSE}
+      zoom={13}
       scrollWheelZoom={false}
       style={{ height: "100%", width: "100%", borderRadius: 16 }}
     >
@@ -30,11 +30,15 @@ export default function ContactMapInner() {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={QRO} icon={icon}>
+      <Marker position={SAN_JOSE} icon={icon}>
         <Popup>
-          <strong>AgroPulse HQ</strong>
+          <strong>AgroPulse HQ 🇨🇷</strong>
           <br />
-          Centro Histórico, Querétaro
+          San José, Costa Rica
+          <br />
+          <span style={{ color: "#64748b", fontSize: 12 }}>
+            Pura Vida AgriTech
+          </span>
         </Popup>
       </Marker>
     </MapContainer>

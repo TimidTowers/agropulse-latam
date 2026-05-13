@@ -4,10 +4,10 @@ import { Quote, Star } from "lucide-react";
 const testimonios = [
   {
     cita:
-      "En seis meses bajamos nuestras mermas de 18% a 7%. AgroPulse cambió la forma en que tomamos decisiones cada mañana.",
-    nombre: "Carolina Vázquez",
-    cargo: "Directora de operaciones",
-    empresa: "Frutícola del Centro",
+      "En seis meses bajamos las mermas de café de 18% a 7%. AgroPulse cambió la forma en que tomamos decisiones cada mañana en la finca.",
+    nombre: "Carolina Solís",
+    cargo: "Gerente de operaciones",
+    empresa: "Finca La Candelilla · Tarrazú, Costa Rica 🇨🇷",
     avatar: "https://i.pravatar.cc/200?img=5",
   },
   {
@@ -15,15 +15,15 @@ const testimonios = [
       "Vendemos a tres cadenas de supermercados sin intermediarios. La trazabilidad por QR fue lo que nos abrió esas puertas.",
     nombre: "Roberto Salinas",
     cargo: "Productor / CEO",
-    empresa: "Invernaderos La Esperanza",
+    empresa: "Invernaderos La Esperanza · Querétaro, México 🇲🇽",
     avatar: "https://i.pravatar.cc/200?img=15",
   },
   {
     cita:
-      "El pronóstico de demanda nos ayudó a planear ciclos completos. Ya no cosechamos a ciegas. Es el futuro del agro mexicano.",
-    nombre: "Lucía Martínez",
+      "El pronóstico de demanda nos ayudó a planear ciclos completos de piña. Ya no cosechamos a ciegas. Es el futuro del agro latinoamericano.",
+    nombre: "Lucía Mora",
     cargo: "Coordinadora agrícola",
-    empresa: "Berries del Bajío",
+    empresa: "Piñas del Norte · Pital, Costa Rica 🇨🇷",
     avatar: "https://i.pravatar.cc/200?img=49",
   },
 ];

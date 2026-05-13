@@ -246,7 +246,14 @@ export default function PlanesPage() {
                 Preguntas frecuentes
               </h2>
               <p className="mt-3 text-muted">
-                Si no encuentras lo que buscas, escríbenos a hola@agropulse.mx
+                Si no encuentras lo que buscas, escríbenos a{" "}
+                <a
+                  href="mailto:sebastorresagropulse@gmail.com"
+                  className="font-medium text-brand hover:text-brand-dark"
+                >
+                  sebastorresagropulse@gmail.com
+                </a>{" "}
+                o por WhatsApp al +506 8337 8828.
               </p>
             </div>
             <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-4">

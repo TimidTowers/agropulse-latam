@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { LoginForm } from "./LoginForm";
 
@@ -22,16 +23,24 @@ export default function LoginPage() {
               Bienvenido de vuelta
             </h1>
             <p className="mt-2 text-sm text-muted">
-              Accede a tu panel o explora el marketplace.
+              Accede a tu panel, dashboard productor o explora el marketplace.
             </p>
-            <LoginForm />
+            <div className="mt-8">
+              <Suspense
+                fallback={
+                  <p className="text-sm text-muted">Cargando formulario…</p>
+                }
+              >
+                <LoginForm />
+              </Suspense>
+            </div>
             <p className="mt-8 text-xs text-muted text-center">
               ¿Eres nuevo en AgroPulse?{" "}
               <Link
-                href="/planes"
+                href="/signup"
                 className="text-brand font-medium hover:underline"
               >
-                Crea una cuenta
+                Crea una cuenta gratis
               </Link>
             </p>
           </div>

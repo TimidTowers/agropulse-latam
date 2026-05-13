@@ -20,14 +20,16 @@ function makeIcon(color: string) {
 }
 
 const greenIcon = makeIcon("#15803D");
+const originIcon = makeIcon("#DC2626"); // resalta la sede en Costa Rica
 
 function LatamMapView() {
   useEffect(() => {
     L.Marker.prototype.options.icon = greenIcon;
   }, []);
 
-  // Center on LATAM
-  const center: [number, number] = [-5, -65];
+  // Centramos la vista en Costa Rica (sede AgroPulse) con un zoom amplio
+  // que permite ver toda LATAM.
+  const center: [number, number] = [9.9281, -84.0907];
 
   return (
     <MapContainer
@@ -41,18 +43,48 @@ function LatamMapView() {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {COUNTRIES.map((c) => (
-        <Marker key={c.code} position={c.capitalCoords} icon={greenIcon}>
+        <Marker
+          key={c.code}
+          position={c.capitalCoords}
+          icon={c.isOrigin ? originIcon : greenIcon}
+        >
           <Popup>
             <div style={{ fontWeight: 600 }}>
               {c.flag} {c.name}
+              {c.isOrigin && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: "#DC2626",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  · Sede
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 12, color: "#64748b" }}>
               Capital: {c.capital}
             </div>
             <div style={{ fontSize: 12, marginTop: 4 }}>
-              {c.productors.toLocaleString("es-MX")} productores ·{" "}
-              {c.hectareas.toLocaleString("es-MX")} ha
+              {c.productors.toLocaleString("es-CR")} productores ·{" "}
+              {c.hectareas.toLocaleString("es-CR")} ha
             </div>
+            {c.isOrigin && (
+              <div
+                style={{
+                  fontSize: 11,
+                  marginTop: 6,
+                  color: "#15803D",
+                  fontWeight: 600,
+                }}
+              >
+                🇨🇷 Mercado origen de AgroPulse
+              </div>
+            )}
           </Popup>
         </Marker>
       ))}

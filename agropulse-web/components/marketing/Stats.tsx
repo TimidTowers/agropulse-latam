@@ -48,16 +48,17 @@ export function Stats() {
         <Reveal>
           <div className="max-w-3xl mb-12">
             <p className="text-xs font-semibold tracking-widest uppercase text-brand mb-3">
-              Presencia en 10 países LATAM
+              🇨🇷 Sede San José, Costa Rica · 10 países LATAM
             </p>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
               Una sola plataforma,{" "}
               <span className="text-brand-gradient">toda Latinoamérica.</span>
             </h2>
             <p className="mt-4 text-muted text-lg leading-relaxed">
-              AgroPulse opera con precios y datos locales en {COUNTRIES.length}{" "}
-              países, conectando a más de {productors.toLocaleString("es-MX")}{" "}
-              productores con compradores B2B en todo el continente.
+              AgroPulse nació en Costa Rica y opera con precios y datos locales
+              en {COUNTRIES.length} países, conectando a más de{" "}
+              {productors.toLocaleString("es-CR")} productores con compradores
+              B2B en todo el continente.
             </p>
           </div>
         </Reveal>

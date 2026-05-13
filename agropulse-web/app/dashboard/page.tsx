@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Bell } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-import { KpiCard } from "@/components/dashboard/KpiCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { MermasChart } from "@/components/dashboard/MermasChart";
 import { AlertList } from "@/components/dashboard/AlertList";
-import { kpis, alertas, proximasCosechas } from "@/lib/mock-data/kpis";
+import { alertas, proximasCosechas } from "@/lib/mock-data/kpis";
 import { orders } from "@/lib/mock-data/orders";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
 import { DashboardCountryBadge } from "@/components/dashboard/DashboardCountryBadge";
-import { Reveal } from "@/components/ui/Reveal";
+import { LiveBadge, LiveKpiCards } from "@/components/realtime/LiveKpiCards";
 
 export const metadata: Metadata = {
   title: "Dashboard — AgroPulse",
@@ -22,9 +21,12 @@ export default function DashboardPage() {
     <main className="bg-background min-h-screen">
       {/* Top bar */}
       <header className="h-16 border-b border-border-soft bg-surface flex items-center px-6 sticky top-0 z-30">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-base font-semibold text-ink">Resumen</h1>
-          <p className="text-xs text-muted">Vista general del productor</p>
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          <div>
+            <h1 className="text-base font-semibold text-ink">Resumen</h1>
+            <p className="text-xs text-muted">Vista general del productor</p>
+          </div>
+          <LiveBadge />
         </div>
         <div className="flex items-center gap-3">
           <DashboardCountryBadge />
@@ -62,14 +64,8 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* KPIs */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {kpis.map((k, i) => (
-            <Reveal key={k.id} delay={i * 0.06} y={20}>
-              <KpiCard kpi={k} positiveIsGood={k.id !== "mermas"} />
-            </Reveal>
-          ))}
-        </div>
+        {/* KPIs — live updates via SSE */}
+        <LiveKpiCards />
 
         {/* Charts */}
         <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4 mb-8">

@@ -24,9 +24,30 @@ export interface Country {
   topProducts: string[];
   hectareas: number;
   taglineLocal: string;
+  /**
+   * Marca el país de origen / sede operativa de AgroPulse.
+   * Solo Costa Rica debe llevar este flag en true.
+   */
+  isOrigin?: boolean;
 }
 
 export const COUNTRIES: Country[] = [
+  {
+    code: "CR",
+    name: "Costa Rica",
+    currency: "CRC",
+    currencySymbol: "₡",
+    locale: "es-CR",
+    flag: "🇨🇷",
+    capital: "San José",
+    capitalCoords: [9.9281, -84.0907],
+    productors: 3200,
+    regions: ["Valle Central", "Guanacaste", "Limón", "Puntarenas"],
+    topProducts: ["Piña Dorada", "Café Tarrazú", "Banano Cavendish"],
+    hectareas: 240000,
+    taglineLocal: "Pura vida para tu cosecha. Hecho en Costa Rica.",
+    isOrigin: true,
+  },
   {
     code: "MX",
     name: "México",
@@ -41,21 +62,6 @@ export const COUNTRIES: Country[] = [
     topProducts: ["Aguacate Hass", "Mango Ataulfo", "Café de Veracruz"],
     hectareas: 920000,
     taglineLocal: "El pulso inteligente del campo mexicano.",
-  },
-  {
-    code: "CR",
-    name: "Costa Rica",
-    currency: "CRC",
-    currencySymbol: "₡",
-    locale: "es-CR",
-    flag: "🇨🇷",
-    capital: "San José",
-    capitalCoords: [9.9281, -84.0907],
-    productors: 3200,
-    regions: ["Valle Central", "Guanacaste", "Limón", "Puntarenas"],
-    topProducts: ["Piña Dorada", "Café Tarrazú", "Banano Cavendish"],
-    hectareas: 240000,
-    taglineLocal: "Pura vida para tu cosecha.",
   },
   {
     code: "CO",
@@ -185,7 +191,22 @@ export const COUNTRIES: Country[] = [
   },
 ];
 
-export const DEFAULT_COUNTRY: CountryCode = "MX";
+export const DEFAULT_COUNTRY: CountryCode = "CR";
+
+/** Mercado origen (sede principal de AgroPulse). */
+export const ORIGIN_COUNTRY: CountryCode = "CR";
+
+/** Detalle de la sede operativa (San José, Costa Rica). */
+export const HEADQUARTERS = {
+  country: "CR" as CountryCode,
+  city: "San José",
+  fullAddress: "San José, Costa Rica",
+  coords: [9.9281, -84.0907] as [number, number],
+  email: "sebastorresagropulse@gmail.com",
+  phone: "+506 8337 8828",
+  phoneE164: "+50683378828",
+  whatsapp: "https://wa.me/50683378828?text=Hola%20AgroPulse%2C%20me%20gustar%C3%ADa%20saber%20m%C3%A1s%20sobre%20la%20plataforma.",
+} as const;
 
 export function getCountry(code: CountryCode): Country {
   return COUNTRIES.find((c) => c.code === code) ?? COUNTRIES[0];

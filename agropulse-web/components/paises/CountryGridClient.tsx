@@ -19,8 +19,17 @@ export function CountryGridClient() {
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.45, delay: i * 0.05 }}
           whileHover={{ y: -4 }}
-          className="group rounded-2xl border border-border-soft bg-surface p-6 hover:shadow-md hover:border-brand/30 transition-all flex flex-col"
+          className={`group relative rounded-2xl border p-6 transition-all flex flex-col ${
+            c.isOrigin
+              ? "border-brand bg-brand/5 ring-2 ring-brand/30 hover:shadow-lg hover:bg-brand/10"
+              : "border-border-soft bg-surface hover:shadow-md hover:border-brand/30"
+          }`}
         >
+          {c.isOrigin && (
+            <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-md">
+              🇨🇷 País de origen
+            </span>
+          )}
           <div className="flex items-start justify-between mb-4">
             <span
               className="text-5xl leading-none"

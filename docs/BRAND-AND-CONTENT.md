@@ -7,12 +7,15 @@
 ## 1. Identidad de la empresa
 
 - **Nombre:** AgroPulse
-- **Razón social ficticia:** AgroPulse Technologies S.A. de C.V.
-- **País / Sede:** Querétaro, México
-- **Fundación (ficticia):** 2024
+- **Razón social ficticia:** AgroPulse Technologies S.A.
+- **País / Sede:** San José, Costa Rica
+- **Fundación (ficticia):** 2024 en San José, Costa Rica
 - **Sector:** AgriTech / Cadena de suministro agroalimentaria
 - **Tagline:** *"El pulso inteligente de tu cosecha."*
+- **Tagline secundario:** *"Made in Costa Rica · Pura Vida AgriTech."*
 - **Tagline EN:** *"Smart pulse for your harvest."*
+- **Email oficial:** sebastorresagropulse@gmail.com
+- **Teléfono / WhatsApp:** +506 8337 8828
 - **Misión:** Reducir las pérdidas post-cosecha de productores agrícolas mediante una plataforma E-business que integra IoT, analítica predictiva y un marketplace B2B.
 - **Visión:** Ser la plataforma líder en LATAM para la gestión inteligente de productos perecederos al 2030, eliminando un millón de toneladas de desperdicio alimentario al año.
 - **Valores:** Sostenibilidad · Transparencia · Innovación · Equidad · Trazabilidad.
@@ -28,7 +31,7 @@
 ## 3. Problemática
 
 ### 3.1 Contexto
-La FAO estima que entre **30 % y 40 %** de la producción agrícola en países en desarrollo se pierde entre la cosecha y el consumidor final. En México, esa cifra equivale a más de **20 millones de toneladas anuales** de alimentos desperdiciados, con un costo económico estimado en **$491 mil millones de pesos**.
+La FAO estima que entre **30 % y 40 %** de la producción agrícola en países en desarrollo se pierde entre la cosecha y el consumidor final. En Costa Rica y Centroamérica, la cifra supera el **35 %** de la producción perecedera, afectando especialmente cadenas de café, piña, banano y hortalizas del Valle Central. En toda Latinoamérica esto equivale a más de **127 millones de toneladas anuales** y un costo económico estimado en **USD 38 mil millones**.
 
 ### 3.2 Problemas tecnológicos identificados
 1. **Falta de visibilidad en tiempo real** del estado del inventario perecedero (temperatura, humedad, vida útil restante).
@@ -69,10 +72,12 @@ Diseñar e implementar una plataforma E-business llamada **AgroPulse** que integ
 
 ## 6. Mercado objetivo
 
-- **Productores objetivo:** ~50,000 pequeñas y medianas unidades de producción de hortalizas, frutas y lácteos en el centro-norte de México.
-- **Compradores objetivo:** Cadenas regionales de supermercados, restaurantes (HORECA), agroindustrias procesadoras.
+- **Mercado origen y prioritario:** Costa Rica (Valle Central, Guanacaste, Limón, Puntarenas). Sede operativa en San José.
+- **Mercados de expansión LATAM:** México, Colombia, Argentina, Chile, Perú, Ecuador, Uruguay, Guatemala, Brasil (10 países conectados).
+- **Productores objetivo:** ~64,000 pequeñas y medianas unidades de producción de café, piña, banano, cacao, frutas, hortalizas y lácteos en toda Latinoamérica, con énfasis inicial en los ~3,200 productores costarricenses certificados.
+- **Compradores objetivo:** Cadenas regionales de supermercados, restaurantes (HORECA), agroindustrias procesadoras y exportadoras.
 - **Tamaño de mercado (TAM):** USD 8,500M en LATAM (mercado de pérdidas post-cosecha gestionable digitalmente).
-- **Segmento inicial (SOM):** USD 120M en el Bajío mexicano (Querétaro, Guanajuato, Michoacán, Jalisco).
+- **Segmento inicial (SOM):** USD 85M en el Valle Central de Costa Rica + corredor cafetero centroamericano.
 
 ## 7. Stack tecnológico
 
@@ -158,19 +163,23 @@ Diseñar e implementar una plataforma E-business llamada **AgroPulse** que integ
 
 ## 11. Equipo ficticio fundador
 
-- **CEO:** Sebastián Torres (founder, Ing. Industrial, ex-Heineken)
-- **CTO:** María Fernanda López (PhD CS, especialista en ML aplicado a agro)
-- **COO:** Diego Ramírez (15 años en operaciones agrícolas)
-- **CFO:** Ana Sofía Hernández (ex-banca, fintech)
-- **Head of Sustainability:** Luis Mendoza (Ing. Agrónomo, certificador GLOBALG.A.P.)
+- **CEO:** Sebastián Torres — costarricense, Ing. Industrial (UCR / TEC), ex-operaciones FIFCO. Sede: San José, Costa Rica.
+- **CTO:** María Fernanda López — colombiana, PhD CS, especialista en ML aplicado a agro. Sede: Bogotá / remota.
+- **COO:** Diego Ramírez — mexicano, 15 años en operaciones agrícolas en el Bajío. Sede: Querétaro / remoto.
+- **CFO:** Ana Sofía Hernández — chilena, ex-banca corporativa y fintech. Sede: Santiago / remota.
+- **Head of Sustainability:** Luis Mendoza — guatemalteco, Ing. Agrónomo, certificador GLOBALG.A.P. Sede: Antigua / remoto.
+
+Sede principal (head office): **San José, Costa Rica**. Equipo distribuido en LATAM.
 
 ## 12. Planes SaaS
 
 | Plan | Precio mensual | Sensores incluidos | Características |
 |---|---|---|---|
-| **Básico** | $1,490 MXN | 3 | Dashboard, alertas básicas, soporte email |
-| **Pro** | $3,990 MXN | 10 | + Pronóstico demanda, integración logística, reportes |
+| **Básico** | ₡45.000 CRC (~USD 85) | 3 | Dashboard, alertas básicas, soporte email |
+| **Pro** | ₡120.000 CRC (~USD 230) | 10 | + Pronóstico demanda, integración logística, reportes |
 | **Enterprise** | A cotizar | Ilimitados | API, multi-finca, soporte 24/7, consultoría dedicada |
+
+Precios mostrados en moneda local según país seleccionado (CRC, MXN, COP, USD, BRL, etc.).
 
 ## 13. Métricas y KPIs proyectados
 
@@ -182,7 +191,8 @@ Diseñar e implementar una plataforma E-business llamada **AgroPulse** que integ
 ## 14. Bibliografía / Referencias
 
 - FAO (2023). *State of Food and Agriculture: Food Loss and Waste.*
-- SADER México (2024). *Diagnóstico de pérdidas y desperdicios alimentarios.*
+- MAG Costa Rica (2024). *Política de Estado para el Desarrollo Rural Territorial.*
+- PROCOMER Costa Rica (2024). *Exportaciones agrícolas y oportunidades AgriTech.*
 - McKinsey (2023). *Agriculture 4.0: The future of AgriTech.*
 - Banco Mundial (2024). *Reducing food loss for sustainable food systems.*
 - Deloitte (2024). *IoT in Agriculture: Market Outlook.*

@@ -8,6 +8,7 @@ import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { PlansSummary } from "@/components/marketing/PlansSummary";
 import { Testimonials } from "@/components/marketing/Testimonials";
 import { CTA } from "@/components/marketing/CTA";
+import { IoTLiveSection } from "@/components/marketing/IoTLiveSection";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       <main className="flex-1">
         <Hero />
         <CountryMarquee />
+        <IoTLiveSection />
         <Stats />
         <FeatureGrid />
         <HowItWorks />

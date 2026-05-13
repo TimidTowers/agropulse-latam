@@ -32,16 +32,17 @@ export default function PaisesPage() {
           <Container className="py-16">
             <Reveal>
               <p className="text-xs font-semibold tracking-widest uppercase text-brand mb-3">
-                Presencia regional
+                🇨🇷 Origen Costa Rica · Presencia regional LATAM
               </p>
               <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-ink leading-tight">
                 AgroPulse en{" "}
                 <span className="text-brand-gradient">Latinoamérica.</span>
               </h1>
               <p className="mt-4 max-w-2xl text-muted text-lg leading-relaxed">
-                Operamos en 10 países con datos, sensores y precios en moneda
-                local. Conoce el ecosistema de productores con quienes ya
-                trabajamos.
+                Somos una empresa costarricense con sede en San José.
+                Operamos en 10 países LATAM con datos, sensores y precios en
+                moneda local. Conoce el ecosistema de productores con quienes
+                ya trabajamos —partiendo del Valle Central de Costa Rica.
               </p>
             </Reveal>
           </Container>

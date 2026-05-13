@@ -1,42 +1,68 @@
 import type { Metadata } from "next";
-import { MapPin, Mail, Phone, Clock } from "lucide-react";
+import { MapPin, Mail, Phone, Clock, MessageCircle, Languages } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Container } from "@/components/ui/Container";
 import { Badge } from "@/components/ui/Badge";
 import { ContactForm } from "./ContactForm";
 import { ContactMap } from "@/components/contact/ContactMap";
+import { HEADQUARTERS } from "@/lib/countries";
 
 export const metadata: Metadata = {
-  title: "Contacto — AgroPulse",
+  title: "Contacto — AgroPulse Costa Rica",
   description:
-    "Hablemos. Equipo AgroPulse, oficinas en Querétaro, México. Atención de lunes a viernes 9-19 hrs.",
+    "Hablemos. AgroPulse, AgriTech costarricense con sede en San José. Atención de lunes a viernes 8:00 a 18:00 hora Costa Rica, soporte para 10 países LATAM.",
 };
 
-const contactInfo = [
+type ContactCard = {
+  icon: typeof MapPin;
+  label: string;
+  valor: string;
+  sub: string;
+  href?: string;
+  external?: boolean;
+};
+
+const contactInfo: ContactCard[] = [
   {
     icon: MapPin,
-    label: "Oficinas",
-    valor: "Centro Histórico, Querétaro, México",
-    sub: "C.P. 76000",
+    label: "Sede principal",
+    valor: "San José, Costa Rica",
+    sub: "🇨🇷 Hecho en Costa Rica",
   },
   {
     icon: Mail,
     label: "Email",
-    valor: "hola@agropulse.mx",
+    valor: HEADQUARTERS.email,
     sub: "Respondemos en menos de 24h",
+    href: `mailto:${HEADQUARTERS.email}`,
   },
   {
     icon: Phone,
-    label: "Teléfono",
-    valor: "+52 442 123 4567",
-    sub: "WhatsApp Business",
+    label: "Teléfono / WhatsApp",
+    valor: HEADQUARTERS.phone,
+    sub: "Llamadas y WhatsApp Business",
+    href: `tel:${HEADQUARTERS.phoneE164}`,
+  },
+  {
+    icon: MessageCircle,
+    label: "WhatsApp directo",
+    valor: "Escríbenos ahora",
+    sub: "Chat inmediato con el equipo",
+    href: HEADQUARTERS.whatsapp,
+    external: true,
   },
   {
     icon: Clock,
     label: "Horario",
-    valor: "Lun – Vie · 9:00 – 19:00",
+    valor: "Lun – Vie · 8:00 – 18:00 hora CR",
     sub: "Soporte 24/7 para Enterprise",
+  },
+  {
+    icon: Languages,
+    label: "Idiomas",
+    valor: "Español · Inglés",
+    sub: "Equipo bilingüe en San José",
   },
 ];
 
@@ -48,14 +74,25 @@ export default function ContactoPage() {
         <section className="border-b border-border-soft">
           <Container className="py-16 sm:py-20">
             <div className="max-w-2xl">
-              <Badge variant="brand">Contacto</Badge>
+              <Badge variant="brand">🇨🇷 Contacto · Sede Costa Rica</Badge>
               <h1 className="mt-5 text-4xl sm:text-5xl font-semibold tracking-tight text-ink">
                 Hablemos del{" "}
                 <span className="text-brand-gradient">futuro de tu cosecha.</span>
               </h1>
               <p className="mt-5 text-lg text-muted leading-relaxed">
-                Nuestro equipo comercial responde personalmente en menos de 24
-                horas. Para emergencias técnicas, escríbenos por WhatsApp.
+                Somos una empresa costarricense con sede en San José. Atendemos
+                productores y compradores en 10 países LATAM. Nuestro equipo
+                comercial responde personalmente en menos de 24 horas; para
+                consultas urgentes, escríbenos directo por WhatsApp al{" "}
+                <a
+                  href={HEADQUARTERS.whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-brand hover:text-brand-dark"
+                >
+                  {HEADQUARTERS.phone}
+                </a>
+                .
               </p>
             </div>
           </Container>
@@ -79,21 +116,40 @@ export default function ContactoPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {contactInfo.map((c) => {
                   const Icon = c.icon;
-                  return (
-                    <div
-                      key={c.label}
-                      className="rounded-2xl border border-border-soft bg-surface p-5"
-                    >
+                  const cardContent = (
+                    <>
                       <div className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
                         <Icon size={16} />
                       </div>
                       <p className="mt-3 text-xs uppercase tracking-wider text-muted">
                         {c.label}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-ink">
+                      <p className="mt-1 text-sm font-medium text-ink break-words">
                         {c.valor}
                       </p>
                       <p className="text-xs text-muted">{c.sub}</p>
+                    </>
+                  );
+
+                  if (c.href) {
+                    return (
+                      <a
+                        key={c.label}
+                        href={c.href}
+                        target={c.external ? "_blank" : undefined}
+                        rel={c.external ? "noopener noreferrer" : undefined}
+                        className="rounded-2xl border border-border-soft bg-surface p-5 hover:border-brand/40 hover:bg-brand/[0.03] transition-colors block"
+                      >
+                        {cardContent}
+                      </a>
+                    );
+                  }
+                  return (
+                    <div
+                      key={c.label}
+                      className="rounded-2xl border border-border-soft bg-surface p-5"
+                    >
+                      {cardContent}
                     </div>
                   );
                 })}

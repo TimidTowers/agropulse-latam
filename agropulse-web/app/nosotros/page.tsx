@@ -11,6 +11,10 @@ import {
   TreeDeciduous,
   Recycle,
   Earth,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -18,11 +22,12 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { team } from "@/lib/mock-data/team";
+import { HEADQUARTERS } from "@/lib/countries";
 
 export const metadata: Metadata = {
-  title: "Nosotros — AgroPulse",
+  title: "Nosotros — AgroPulse · AgriTech Costa Rica",
   description:
-    "AgroPulse Technologies S.A. de C.V. es una empresa AgriTech mexicana que reduce las pérdidas post-cosecha con tecnología IoT y un marketplace B2B.",
+    "AgroPulse Technologies S.A. es una empresa AgriTech costarricense fundada en San José en 2024. Reduce las pérdidas post-cosecha con IoT y un marketplace B2B en 10 países LATAM.",
 };
 
 const valores = [
@@ -90,25 +95,25 @@ const historia = [
     year: "2023",
     titulo: "La chispa",
     descripcion:
-      "Sebastián, durante una visita a productores de Querétaro, ve hortalizas perdiéndose por falta de cadena de frío. Empieza a investigar.",
+      "Sebastián, recorriendo fincas de café en Tarrazú y plantaciones de piña en el norte de Costa Rica, observa cómo se pierden cosechas enteras por rupturas de cadena de frío y falta de visibilidad. Empieza a investigar.",
   },
   {
     year: "2024",
-    titulo: "Fundación",
+    titulo: "Fundación en San José",
     descripcion:
-      "Junto con María Fernanda (CTO), constituyen AgroPulse Technologies. Primer piloto con 3 productores del Bajío.",
+      "Junto con María Fernanda (CTO), constituye AgroPulse Technologies S.A. en San José, Costa Rica. Primer piloto con 5 productores del Valle Central y Tarrazú.",
   },
   {
     year: "2025",
     titulo: "Levantamiento Seed",
     descripcion:
-      "USD 1.8M en ronda seed liderada por fondos AgriTech regionales. Sumamos a Diego, Ana Sofía y Luis al equipo fundador.",
+      "USD 1.8M en ronda seed liderada por fondos AgriTech regionales (Costa Rica, México y Chile). Sumamos a Diego, Ana Sofía y Luis al equipo fundador con presencia distribuida en LATAM.",
   },
   {
     year: "2026",
-    titulo: "Lanzamiento público",
+    titulo: "Lanzamiento regional",
     descripcion:
-      "Marketplace abierto. 500+ productores onboarded. Operación en Querétaro, Guanajuato, Michoacán y Jalisco.",
+      "Marketplace abierto desde San José. 500+ productores onboarded en Valle Central, Guanacaste, Limón y Puntarenas; expansión simultánea a 9 países LATAM más.",
   },
 ];
 
@@ -122,17 +127,19 @@ export default function NosotrosPage() {
           <div className="absolute inset-0 bg-grid opacity-50" aria-hidden="true" />
           <Container className="relative py-20 sm:py-28">
             <div className="max-w-3xl">
-              <Badge variant="brand">Nuestra historia</Badge>
+              <Badge variant="brand">🇨🇷 Nuestra historia · Hecho en Costa Rica</Badge>
               <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-ink leading-[1.05]">
                 Hacemos que cada{" "}
                 <span className="text-brand-gradient">tonelada cuente.</span>
               </h1>
               <p className="mt-6 text-lg text-muted leading-relaxed">
-                AgroPulse Technologies S.A. de C.V. nació en Querétaro en 2024
-                con una convicción simple: el desperdicio alimentario es uno de
-                los problemas más resolubles del siglo, y la tecnología debe
-                estar al alcance del productor mexicano promedio, no solo del
-                gigante exportador.
+                AgroPulse Technologies S.A. nació en{" "}
+                <strong className="text-ink">San José, Costa Rica</strong> en
+                2024 con una convicción simple: el desperdicio alimentario es
+                uno de los problemas más resolubles del siglo, y la tecnología
+                debe estar al alcance del pequeño cafetalero de Tarrazú o el
+                piñero de Pital, no solo del gigante exportador. Somos Pura
+                Vida AgriTech para toda Latinoamérica.
               </p>
             </div>
           </Container>
@@ -202,6 +209,101 @@ export default function NosotrosPage() {
                   </article>
                 );
               })}
+            </div>
+          </Container>
+        </section>
+
+        {/* Sede Costa Rica */}
+        <section id="sede" className="border-y border-border-soft">
+          <Container className="py-20">
+            <div className="grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
+              <div>
+                <p className="text-xs font-semibold tracking-widest uppercase text-brand mb-3">
+                  🇨🇷 Nuestra sede
+                </p>
+                <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
+                  Operamos desde{" "}
+                  <span className="text-brand-gradient">San José, Costa Rica.</span>
+                </h2>
+                <p className="mt-5 text-muted leading-relaxed">
+                  Costa Rica es nuestro hogar y nuestro primer mercado. Desde
+                  San José coordinamos a un equipo distribuido en LATAM y
+                  operamos pilotos en el Valle Central, Tarrazú, Guanacaste,
+                  Limón y Puntarenas. El país combina tradición agrícola
+                  exportadora, fuerte vocación sustentable y un ecosistema
+                  AgriTech en crecimiento. Pura Vida AgriTech, hecho en Costa
+                  Rica para toda Latinoamérica.
+                </p>
+
+                <ul className="mt-7 space-y-3 text-sm">
+                  <li className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand shrink-0">
+                      <MapPin size={16} />
+                    </span>
+                    <div>
+                      <p className="font-medium text-ink">Head office</p>
+                      <p className="text-muted">{HEADQUARTERS.fullAddress}</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand shrink-0">
+                      <Mail size={16} />
+                    </span>
+                    <div>
+                      <p className="font-medium text-ink">Email oficial</p>
+                      <a
+                        href={`mailto:${HEADQUARTERS.email}`}
+                        className="text-muted hover:text-brand transition-colors break-all"
+                      >
+                        {HEADQUARTERS.email}
+                      </a>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand shrink-0">
+                      <Phone size={16} />
+                    </span>
+                    <div>
+                      <p className="font-medium text-ink">Teléfono · WhatsApp</p>
+                      <a
+                        href={`tel:${HEADQUARTERS.phoneE164}`}
+                        className="text-muted hover:text-brand transition-colors"
+                      >
+                        {HEADQUARTERS.phone}
+                      </a>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand shrink-0">
+                      <Globe size={16} />
+                    </span>
+                    <div>
+                      <p className="font-medium text-ink">Cobertura</p>
+                      <p className="text-muted">
+                        10 países LATAM · operación bilingüe ES/EN
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border-soft shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://images.unsplash.com/photo-1518630904902-9e3a26e88c3a?auto=format&fit=crop&w=1200&q=80"
+                  alt="Vista del Valle Central de Costa Rica desde San José"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-x-4 bottom-4 rounded-xl bg-ink/80 backdrop-blur px-4 py-3 text-white">
+                  <p className="text-xs uppercase tracking-wider text-accent">
+                    🇨🇷 San José · Valle Central
+                  </p>
+                  <p className="text-sm font-medium mt-0.5">
+                    Sede operativa de AgroPulse desde 2024
+                  </p>
+                </div>
+              </div>
             </div>
           </Container>
         </section>
