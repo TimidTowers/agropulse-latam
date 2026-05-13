@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { formatPriceByCode, getCountry } from "@/lib/countries";
 import { useCartStore } from "@/lib/stores/cart-store";
+import { ProductImage } from "@/components/marketplace/ProductImage";
 import type { Product } from "@/lib/types";
 
 interface ProductCardProps {
@@ -74,12 +75,14 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
         href={`/marketplace/${product.id}`}
         className="relative aspect-[4/3] overflow-hidden bg-surface-2 block"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <ProductImage
           src={product.imagen}
-          alt={product.nombre}
+          alt={`${product.nombre} — ${product.productor.nombre}`}
+          productKey={product.id}
           className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
           loading="lazy"
+          decoding="async"
+          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
         />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
           <Badge variant={badge.variant}>{badge.label}</Badge>

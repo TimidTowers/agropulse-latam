@@ -243,10 +243,20 @@ export function MarketplaceClient() {
         </Container>
       </section>
 
-      <Container className="py-10">
+      <Container className="relative py-10">
         <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-          {/* Filters */}
-          <aside className="rounded-2xl border border-border-soft bg-surface p-5 sticky top-20 h-fit">
+          {/* Filters
+              FIX (mobile overlap bug): el contenedor de filtros debe quedar
+              SIEMPRE por encima de la lista al hacer scroll.
+              - `sticky top-16 sm:top-20` mantiene los filtros fijos bajo el navbar.
+              - `z-30` garantiza que el listado no se superponga (los products
+                cards usan motion + backdrop-blur badges que sin z-index explícito
+                creaban stacking contexts compitiendo con el aside).
+              - `shadow-sm` + `bg-surface` aseguran contraste visual sobre el
+                contenido que pasa por debajo.
+              - En mobile el aside tiene altura máxima del viewport con scroll
+                interno propio para no tapar todo el screen. */}
+          <aside className="rounded-2xl border border-border-soft bg-surface shadow-sm lg:shadow-none p-5 sticky top-16 sm:top-20 z-30 max-h-[calc(100vh-5rem)] sm:max-h-[calc(100vh-6rem)] overflow-y-auto h-fit lg:h-fit">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-ink">Filtros</h2>
               {hasFilters && (

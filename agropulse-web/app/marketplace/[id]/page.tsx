@@ -22,6 +22,7 @@ import { getProductById, products } from "@/lib/mock-data/products";
 import { formatDate } from "@/lib/utils";
 import { formatPrice, getCountry } from "@/lib/countries";
 import { AddToCartButton } from "@/components/marketplace/AddToCartButton";
+import { ProductImage } from "@/components/marketplace/ProductImage";
 
 export async function generateStaticParams() {
   return products.map((p) => ({ id: p.id }));
@@ -89,24 +90,29 @@ export default async function ProductPage(
             {/* Galería */}
             <div className="space-y-3">
               <div className="aspect-[5/4] rounded-2xl overflow-hidden bg-surface-2 border border-border-soft">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <ProductImage
                   src={p.imagen}
-                  alt={p.nombre}
+                  alt={`${p.nombre} — ${p.productor.nombre}`}
+                  productKey={p.id}
                   className="h-full w-full object-cover"
+                  loading="eager"
+                  fetchPriority="high"
+                  sizes="(max-width: 1024px) 100vw, 55vw"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {p.galeria.map((g, i) => (
                   <div
-                    key={i}
+                    key={`${p.id}-gallery-${i}`}
                     className="aspect-square rounded-xl overflow-hidden bg-surface-2 border border-border-soft"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <ProductImage
                       src={g}
-                      alt={`${p.nombre} - ${i + 1}`}
+                      alt={`${p.nombre} - vista ${i + 1}`}
+                      productKey={`${p.id}-${i}`}
                       className="h-full w-full object-cover"
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 33vw, 18vw"
                     />
                   </div>
                 ))}
