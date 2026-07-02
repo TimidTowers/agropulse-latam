@@ -19,12 +19,20 @@ import {
   Loader2,
   ArrowRight,
   ShieldCheck,
+  Tag,
+  BadgePercent,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { useCartStore } from "@/lib/stores/cart-store";
 import { getCountry, formatPriceByCode } from "@/lib/countries";
+import { computeDiscounts, PRODUCER_DISCOUNT_PCT } from "@/lib/commerce/discounts";
+import {
+  requestCouponValidation,
+  toCoupon,
+  type AppliedCoupon,
+} from "@/components/carrito/coupon-client";
 import type { PublicUser, PaymentMethod } from "@/lib/db/types";
 
 interface CheckoutFormProps {
@@ -63,11 +71,37 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const getSubtotal = useCartStore((s) => s.getSubtotal);
-  const getCommission = useCartStore((s) => s.getCommission);
   const clear = useCartStore((s) => s.clear);
+  const couponCode = useCartStore((s) => s.couponCode);
+  const setCoupon = useCartStore((s) => s.setCoupon);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Cupón aplicado en el carrito — se re-valida al montar (pudo expirar o
+  // el carrito pudo cambiar de categorías desde que se aplicó).
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  useEffect(() => {
+    if (!mounted) return;
+    if (!couponCode || items.length === 0) {
+      setAppliedCoupon(null);
+      return;
+    }
+    let cancelled = false;
+    requestCouponValidation(couponCode, items).then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.coupon) {
+        setAppliedCoupon(res.coupon);
+      } else {
+        // Cupón ya no válido: se descarta silenciosamente del pedido
+        setAppliedCoupon(null);
+        setCoupon(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, couponCode, items, setCoupon]);
 
   const [shippingId, setShippingId] = useState<string>("cold-chain");
   const [paymentMethodId, setPaymentMethodId] = useState<string>(
@@ -100,19 +134,42 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
 
   // Cálculos
   const subtotal = getSubtotal();
-  const commissionFee = getCommission();
   const shipping = SHIPPING_METHODS.find((s) => s.id === shippingId) ?? SHIPPING_METHODS[0];
-  const shippingFee = Math.max(
+  const baseShippingFee = Math.max(
     shipping.flatMin,
     Math.round(subtotal * shipping.feeFactor),
   );
 
+  // Descuentos (cupón + 8% automático de productor). Mismo motor que el
+  // server: computeDiscounts de lib/commerce/discounts.
+  const discounts = computeDiscounts({
+    items: items.map((i) => ({
+      productId: i.productId,
+      productName: i.name,
+      category: i.category,
+      subtotal: i.pricePerUnit * i.quantity,
+    })),
+    subtotal,
+    shippingFee: baseShippingFee,
+    coupon: appliedCoupon ? toCoupon(appliedCoupon) : null,
+    buyerRole: user.role,
+  });
+  const discountTotal = discounts.discountTotal;
+  // Envío ajustado (0 si el cupón es de delivery con envío gratis)
+  const shippingFee = discounts.shippingFee;
+
+  // DECISIÓN: comisión 4% y fee del método de pago se recalculan sobre
+  // (subtotal − descuentos) — igual que el cálculo autoritativo de
+  // POST /api/orders — para que este resumen cuadre con el pedido creado.
+  const discountedSubtotal = Math.max(0, subtotal - discountTotal);
+  const commissionFee = Math.round(discountedSubtotal * 0.04);
+
   const selectedPm = paymentMethods.find((p) => p.id === paymentMethodId);
   const paymentFee = selectedPm?.feePct
-    ? Math.round((subtotal * selectedPm.feePct) / 100)
+    ? Math.round((discountedSubtotal * selectedPm.feePct) / 100)
     : 0;
 
-  const total = subtotal + commissionFee + shippingFee + paymentFee;
+  const total = discountedSubtotal + commissionFee + shippingFee + paymentFee;
 
   const allReady =
     !blocked &&
@@ -138,8 +195,11 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
           quantity: i.quantity,
           unit: i.unit,
           unitPrice: i.pricePerUnit,
+          category: i.category,
         })),
-        shippingFee,
+        // Se envía el fee base del método; si hay cupón de envío gratis el
+        // server lo ajusta a 0 con computeDiscounts (cálculo autoritativo).
+        shippingFee: baseShippingFee,
         shippingMethod: shipping.name,
         paymentMethodId,
         customerInfo: {
@@ -151,6 +211,7 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
         },
         notes: notes.trim() || undefined,
         acceptTerms,
+        couponCode: appliedCoupon?.code,
       };
 
       const res = await fetch("/api/orders", {
@@ -479,6 +540,27 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
             ))}
           </ul>
 
+          {user.role === "productor" && (
+            <div className="mt-4 rounded-xl border border-brand/30 bg-brand/5 p-3 flex items-start gap-2">
+              <BadgePercent size={14} className="text-brand flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-ink">
+                Como productor tienes{" "}
+                <strong>{PRODUCER_DISCOUNT_PCT}% de descuento automático</strong>{" "}
+                en tus compras.
+              </p>
+            </div>
+          )}
+
+          {appliedCoupon && (
+            <div className="mt-4 rounded-xl border border-brand/30 bg-brand/5 p-3 flex items-start gap-2">
+              <Tag size={14} className="text-brand flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-ink">
+                Cupón <strong>{appliedCoupon.code}</strong> aplicado ·{" "}
+                {appliedCoupon.description}
+              </p>
+            </div>
+          )}
+
           <ul className="space-y-2 text-sm pt-4">
             <li className="flex items-center justify-between">
               <span className="text-muted">Subtotal</span>
@@ -486,6 +568,19 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
                 {formatPriceByCode(subtotal, user.country)}
               </span>
             </li>
+            {discounts.lines.map((line) => (
+              <li
+                key={line.label}
+                className="flex items-center justify-between"
+              >
+                <span className="text-brand">{line.label}</span>
+                <span className="text-brand tabular-nums font-medium">
+                  {line.amount > 0
+                    ? `−${formatPriceByCode(line.amount, user.country)}`
+                    : "Gratis"}
+                </span>
+              </li>
+            ))}
             <li className="flex items-center justify-between">
               <span className="text-muted">Comisión AgroPulse (4%)</span>
               <span className="text-ink tabular-nums">
@@ -493,7 +588,12 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
               </span>
             </li>
             <li className="flex items-center justify-between">
-              <span className="text-muted">Envío</span>
+              <span className="text-muted">
+                Envío
+                {appliedCoupon?.freeShipping && baseShippingFee > 0 && (
+                  <span className="text-brand"> (cupón)</span>
+                )}
+              </span>
               <span className="text-ink tabular-nums">
                 {shippingFee === 0 ? "Gratis" : formatPriceByCode(shippingFee, user.country)}
               </span>

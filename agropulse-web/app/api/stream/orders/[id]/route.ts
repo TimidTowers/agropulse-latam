@@ -1,17 +1,22 @@
 /**
- * SSE: live order tracking.
+ * SSE: live order tracking (progresión DETERMINÍSTICA).
  *
- * Streams the current state of an order. For demo flow, every ~4s there is a
- * 30% chance to advance the status to the next step in ORDER_STATUS_FLOW
- * (unless the order is already `entregado` or `cancelado`).
+ * Antes: cada ~4s había 30% de probabilidad de avanzar el estado — dos visitas
+ * al mismo pedido mostraban estados distintos y un cold start lo "retrocedía".
+ *
+ * Ahora: en cada tick se relee el pedido y se aplica ensureProgress()
+ * (lib/orders/progression.ts). El estado se DERIVA del tiempo transcurrido
+ * desde createdAt con hitos fijos: es una función pura del reloj, monótona,
+ * y nunca retrocede. Los pedidos seed (autoProgress: false) quedan estables.
  *
  * Emits:
- *   - `tick`      → full order payload on every update or 3s heartbeat
+ *   - `tick` → full order payload en cada latido (~1.5s), mismo shape que antes.
  */
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { ordersDb } from "@/lib/db/store";
-import { ORDER_STATUS_FLOW, type OrderExtended, type OrderStatus } from "@/lib/db/types";
+import type { OrderExtended } from "@/lib/db/types";
+import { ensureProgress } from "@/lib/orders/progression";
 import { createSseStream, sleep } from "@/lib/realtime/sse";
 
 export const dynamic = "force-dynamic";
@@ -20,13 +25,6 @@ interface OrderTick {
   ts: string;
   order: OrderExtended | null;
   notFound?: boolean;
-}
-
-function nextStatus(current: OrderStatus): OrderStatus | null {
-  if (current === "entregado" || current === "cancelado") return null;
-  const idx = ORDER_STATUS_FLOW.indexOf(current);
-  if (idx < 0 || idx >= ORDER_STATUS_FLOW.length - 1) return null;
-  return ORDER_STATUS_FLOW[idx + 1];
 }
 
 export async function GET(
@@ -56,46 +54,26 @@ export async function GET(
       return;
     }
 
-    // Send initial state
-    let lastStatus: OrderStatus = initial.status;
-    send("tick", { ts: new Date().toISOString(), order: initial });
+    // Estado inicial con avance determinístico aplicado.
+    send("tick", { ts: new Date().toISOString(), order: ensureProgress(initial) });
 
-    // Tick loop: every ~1500ms re-read; every ~4s try to advance status.
+    // Tick loop: cada ~1500ms re-lee, aplica ensureProgress (monótono, según
+    // reloj) y emite. El stream cierra a ~9s y el cliente reconecta
+    // (patrón Vercel-safe).
     const startedAt = Date.now();
-    let elapsedSinceAdvance = 0;
     while (Date.now() - startedAt < 8500) {
       await sleep(1500);
-      elapsedSinceAdvance += 1500;
 
-      let current = ordersDb.findById(id);
+      const current = ordersDb.findById(id);
       if (!current) {
         send("tick", { ts: new Date().toISOString(), order: null, notFound: true });
         break;
       }
 
-      if (elapsedSinceAdvance >= 4000) {
-        elapsedSinceAdvance = 0;
-        const nxt = nextStatus(current.status);
-        if (nxt && Math.random() < 0.3) {
-          const updated = ordersDb.updateStatus(
-            id,
-            nxt,
-            "Actualización automática",
-            "system",
-            "admin",
-          );
-          if (updated) current = updated;
-        }
-      }
-
-      if (current.status !== lastStatus) {
-        lastStatus = current.status;
-        send("tick", { ts: new Date().toISOString(), order: current });
-      } else {
-        // Heartbeat / live indicator with the same payload so the UI clock
-        // updates.
-        send("tick", { ts: new Date().toISOString(), order: current });
-      }
+      // Avance derivado del tiempo transcurrido — nunca aleatorio, nunca
+      // retrocede. Mismo payload en heartbeat para que el reloj de la UI
+      // se actualice.
+      send("tick", { ts: new Date().toISOString(), order: ensureProgress(current) });
     }
   });
 }

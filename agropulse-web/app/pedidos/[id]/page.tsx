@@ -21,8 +21,10 @@ import { Button } from "@/components/ui/Button";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { ordersDb, usersDb } from "@/lib/db/store";
 import { formatPriceByCode, getCountry } from "@/lib/countries";
+import { ensureProgress } from "@/lib/orders/progression";
 import { OrderStatusStream } from "@/components/realtime/OrderStatusStream";
 import { OrderActions } from "@/components/pedidos/OrderActions";
+import { OrderRouteMap } from "@/components/pedidos/OrderRouteMap";
 import type { OrderExtended, OrderStatus } from "@/lib/db/types";
 
 export const metadata: Metadata = {
@@ -192,10 +194,14 @@ export default async function OrderDetailPage(
   const { id } = await props.params;
   if (!user) redirect(`/login?from=/pedidos/${id}`);
 
-  const order = ordersDb.findById(id);
+  // Progresión determinística ANTES de renderizar (monótona, según reloj).
+  const found = ordersDb.findById(id);
+  const order = found ? ensureProgress(found) : undefined;
 
   // Helper: pedidos del usuario para mostrar en el 404
-  const myRecent = listOrdersFor(user.role, user.id).slice(0, 5);
+  const myRecent = listOrdersFor(user.role, user.id)
+    .map((o) => ensureProgress(o))
+    .slice(0, 5);
 
   if (!order) {
     return <OrderNotFoundView id={id} recentOrders={myRecent} />;
@@ -421,27 +427,29 @@ export default async function OrderDetailPage(
                 </p>
               </section>
 
-              {/* Mapa placeholder */}
+              {/* Mapa de ruta EN VIVO */}
               <section className="rounded-2xl border border-border-soft bg-surface p-5">
-                <p className="text-[11px] uppercase tracking-wider text-muted mb-3">
-                  Ruta estimada
-                </p>
-                <div className="aspect-[16/9] rounded-xl bg-gradient-to-br from-emerald-50 to-sky-50 border border-border-soft grid place-items-center">
-                  <div className="text-center">
-                    <MapPin size={32} className="text-brand mx-auto" />
-                    <p className="mt-2 text-sm font-medium text-ink">
-                      {productor?.address?.city ?? "Origen"} →{" "}
-                      {order.customerInfo.address.city}
-                    </p>
-                    <p className="text-xs text-muted">
-                      Mapa Leaflet (ETA{" "}
-                      {new Date(order.estimatedDelivery).toLocaleDateString(
-                        "es-CR",
-                      )}
-                      )
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                  <p className="text-[11px] uppercase tracking-wider text-muted">
+                    Ruta del envío en vivo
+                  </p>
+                  <p className="text-[11px] text-muted inline-flex items-center gap-1">
+                    <MapPin size={11} />
+                    ETA{" "}
+                    {new Date(order.estimatedDelivery).toLocaleDateString(
+                      "es-CR",
+                    )}
+                  </p>
                 </div>
+                <OrderRouteMap
+                  initialOrder={order}
+                  originCountry={productor?.country ?? order.country}
+                  productorName={
+                    productor?.name ??
+                    order.items[0]?.productorName ??
+                    "Productor"
+                  }
+                />
               </section>
 
               {order.notes && (

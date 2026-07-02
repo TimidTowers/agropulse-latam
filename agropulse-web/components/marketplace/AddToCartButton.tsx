@@ -79,6 +79,7 @@ export function AddToCartButton({ product, quantity = 1 }: AddToCartButtonProps)
         pricePerUnit: product.precio,
         currency: getCountry(product.country).currency,
         maxStock: product.stock,
+        category: product.categoria,
       },
       quantity,
     );

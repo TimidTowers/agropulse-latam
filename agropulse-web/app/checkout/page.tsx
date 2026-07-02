@@ -15,8 +15,9 @@ export default async function CheckoutPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?from=/checkout");
 
-  // Solo clientes pueden completar checkout
-  if (user.role !== "cliente") {
+  // Clientes, productores y admin pueden completar checkout.
+  // Los productores compran con 8% de descuento automático (PRODUCER_DISCOUNT_PCT).
+  if (user.role === "logistica") {
     redirect("/marketplace");
   }
 

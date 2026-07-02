@@ -1,5 +1,6 @@
 import type { Product, ProductoCategoria, Urgencia } from "../types";
 import type { CountryCode } from "../countries";
+import { resolveProductImage } from "../product-images";
 
 // Use a fixed reference date so SSR/CSR match deterministically.
 const REFERENCE_DATE = new Date("2026-05-12T00:00:00Z");
@@ -326,7 +327,7 @@ const brSeeds: ProductSeed[] = [
 ];
 
 // Assemble all products in country order
-export const products: Product[] = [
+const baseProducts: Product[] = [
   ...mxSeeds.map((s) => build("MX", s)),
   ...crSeeds.map((s) => build("CR", s)),
   ...coSeeds.map((s) => build("CO", s)),
@@ -338,6 +339,25 @@ export const products: Product[] = [
   ...gtSeeds.map((s) => build("GT", s)),
   ...brSeeds.map((s) => build("BR", s)),
 ];
+
+/**
+ * AUDITORÍA DE IMÁGENES — post-procesado del catálogo completo.
+ *
+ * Fuerza que TODOS los productos usen la imagen que resolveProductImage
+ * (lib/product-images.ts, URLs verificadas keyword→producto) asigna según
+ * nombre + categoría: "Café Tarrazú SHB" → foto de café, "Uva Malbec" →
+ * foto de uvas, etc. La galería se reconstruye con entradas relevantes:
+ * [imagen resuelta, fallback de la categoría, imagen resuelta].
+ */
+export const products: Product[] = baseProducts.map((p) => {
+  const imagen = resolveProductImage(p.nombre, p.categoria);
+  const categoriaFallback = resolveProductImage("", p.categoria);
+  return {
+    ...p,
+    imagen,
+    galeria: [imagen, categoriaFallback, imagen],
+  };
+});
 
 export function getProductById(id: string): Product | undefined {
   return products.find((p) => p.id === id || p.slug === id);

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { MapPin, Clock, Package, Lock, AlertTriangle, ShoppingCart, Check, Sprout } from "lucide-react";
+import { MapPin, Clock, Package, Lock, AlertTriangle, ShoppingCart, Check, Sprout, PackageX } from "lucide-react";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Badge } from "@/components/ui/Badge";
 import { formatPriceByCode, getCountry } from "@/lib/countries";
 import { useCartStore } from "@/lib/stores/cart-store";
@@ -14,6 +15,11 @@ interface ProductCardProps {
   product: Product;
   /** marca lotes recién publicados desde la store dinámica */
   freshBadge?: boolean;
+  /**
+   * Stock efectivo en vivo (SSE). Si llega, reemplaza a product.stock:
+   * baja cuando otros compradores reservan y sube cuando expiran reservas.
+   */
+  liveStock?: number;
 }
 
 function urgenciaToBadge(u: Product["urgencia"]) {
@@ -28,7 +34,7 @@ function urgenciaToBadge(u: Product["urgencia"]) {
   }
 }
 
-export function ProductCard({ product, freshBadge }: ProductCardProps) {
+export function ProductCard({ product, freshBadge, liveStock }: ProductCardProps) {
   const badge = urgenciaToBadge(product.urgencia);
   const country = getCountry(product.country);
   const { data: session, status } = useSession();
@@ -39,10 +45,14 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [added, setAdded] = useState(false);
 
+  // Stock mostrado: el valor en vivo (SSE) si existe, si no el estático.
+  const displayStock = liveStock ?? product.stock;
+  const agotado = liveStock !== undefined && liveStock <= 0;
+
   function handleAdd(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (!authed || !sameCountry) return;
+    if (!authed || !sameCountry || agotado) return;
     addItem(
       {
         productId: product.id,
@@ -55,7 +65,8 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
         unit: product.unidad,
         pricePerUnit: product.precio,
         currency: country.currency,
-        maxStock: product.stock,
+        maxStock: liveStock ?? product.stock,
+        category: product.categoria,
       },
       1,
     );
@@ -63,11 +74,13 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
     setTimeout(() => setAdded(false), 1500);
   }
 
-  const blockedReason = !authed
-    ? "Inicia sesión para comprar"
-    : !sameCountry
-      ? `Solo disponible para clientes en ${country.name}`
-      : null;
+  const blockedReason = agotado
+    ? "Agotado — reservado por otros compradores"
+    : !authed
+      ? "Inicia sesión para comprar"
+      : !sameCountry
+        ? `Solo disponible para clientes en ${country.name}`
+        : null;
 
   return (
     <div className="group rounded-2xl overflow-hidden border border-border-soft bg-surface shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-brand/30 transition-all flex flex-col">
@@ -85,7 +98,13 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
           sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
         />
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-          <Badge variant={badge.variant}>{badge.label}</Badge>
+          {agotado ? (
+            <Badge variant="danger">
+              <PackageX size={11} /> Agotado
+            </Badge>
+          ) : (
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+          )}
           {freshBadge && (
             <Badge variant="brand" className="bg-brand text-white">
               <Sprout size={11} /> Recién publicado
@@ -124,7 +143,18 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
           </span>
           <span className="inline-flex items-center gap-1">
             <Package size={12} className="text-brand" />
-            {product.stock.toLocaleString(country.locale)} {product.unidad}
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={displayStock}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.25 }}
+                className={agotado ? "text-red-600 font-medium" : undefined}
+              >
+                {displayStock.toLocaleString(country.locale)} {product.unidad}
+              </motion.span>
+            </AnimatePresence>
           </span>
           <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
             ★ {product.productor.rating.toFixed(1)}
@@ -153,7 +183,13 @@ export function ProductCard({ product, freshBadge }: ProductCardProps) {
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border-soft bg-surface-2 px-3 py-2 text-xs text-muted cursor-not-allowed"
               title={blockedReason}
             >
-              {!authed ? <Lock size={12} /> : <AlertTriangle size={12} />}
+              {agotado ? (
+                <PackageX size={12} />
+              ) : !authed ? (
+                <Lock size={12} />
+              ) : (
+                <AlertTriangle size={12} />
+              )}
               <span className="truncate">{blockedReason}</span>
             </div>
           ) : (

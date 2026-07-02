@@ -139,6 +139,17 @@ export interface OrderItem {
   unit: string;
   unitPrice: number;
   subtotal: number;
+  /** categoría del producto (para cupones por categoría) */
+  category?: string;
+}
+
+/** Línea de descuento aplicada a un pedido (cupón, descuento productor, etc.) */
+export interface DiscountLine {
+  /** código del cupón si aplica */
+  code?: string;
+  label: string;
+  /** monto descontado en la moneda del pedido (positivo) */
+  amount: number;
 }
 
 export interface OrderStatusHistoryEntry {
@@ -184,6 +195,18 @@ export interface OrderExtended {
   notes?: string;
   createdAt: string;
   country: CountryCode;
+  /**
+   * Si false, el pedido NO avanza automáticamente (pedidos seed con estado
+   * fijo). Los pedidos creados en runtime usan true: avanzan de forma
+   * determinística según tiempo transcurrido (lib/orders/progression.ts).
+   */
+  autoProgress?: boolean;
+  /** código de cupón aplicado (si hubo) */
+  couponCode?: string;
+  /** líneas de descuento aplicadas (cupón, descuento productor, etc.) */
+  discountLines?: DiscountLine[];
+  /** suma de descuentos en moneda del pedido */
+  discountTotal?: number;
 }
 
 // ============================================================================
@@ -244,6 +267,9 @@ export type AuditAction =
   | "cart.add"
   | "cart.remove"
   | "contact.message"
+  | "coupon.apply"
+  | "stock.reserve"
+  | "stock.release"
   | "admin.user_update"
   | "admin.user_delete";
 
@@ -308,6 +334,58 @@ export interface PaymentMethod {
   description: string;
   /** comisión adicional % */
   feePct?: number;
+  enabled: boolean;
+}
+
+// ============================================================================
+// STOCK RESERVATIONS — stock en vivo con reserva temporal
+// ============================================================================
+
+export type ReservationStatus = "activa" | "confirmada" | "expirada" | "liberada";
+
+export interface StockReservation {
+  id: string;
+  /** id de producto estático (p-xx-nnn) o de lote dinámico (lot-...) */
+  productId: string;
+  userId: string;
+  quantity: number;
+  unit: string;
+  createdAt: string;
+  /** ISO timestamp — al expirar, la cantidad se reintegra al stock */
+  expiresAt: string;
+  status: ReservationStatus;
+  /** pedido que confirmó la reserva (si status=confirmada) */
+  orderId?: string;
+}
+
+// ============================================================================
+// COUPONS — cupones de descuento del carrito
+// ============================================================================
+
+export type CouponType = "general" | "delivery" | "categoria" | "producto";
+
+export interface Coupon {
+  /** código en MAYÚSCULAS, único */
+  code: string;
+  type: CouponType;
+  description: string;
+  /** % de descuento (1-100) sobre los items elegibles */
+  discountPct?: number;
+  /** si true (type=delivery), el envío es gratis */
+  freeShipping?: boolean;
+  /** categoría objetivo si type=categoria (ej. "Frutas") */
+  category?: string;
+  /** productId objetivo si type=producto */
+  productId?: string;
+  /** países donde aplica; undefined o vacío = todos */
+  countries?: CountryCode[];
+  /** restringido a un rol (ej. cupón exclusivo productores) */
+  onlyRole?: UserRole;
+  validFrom: string;
+  validUntil: string;
+  /** usos máximos globales; undefined = ilimitado */
+  maxUses?: number;
+  usedCount: number;
   enabled: boolean;
 }
 

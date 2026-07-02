@@ -11,6 +11,7 @@
  */
 import { SEED_USERS, SEED_PAYMENT_METHODS } from "./seed";
 import { SEED_ORDERS } from "./seed-orders";
+import { SEED_COUPONS } from "./seed-coupons";
 import type {
   User,
   PublicUser,
@@ -22,6 +23,8 @@ import type {
   Notification,
   PaymentMethod,
   SessionRecord,
+  StockReservation,
+  Coupon,
 } from "./types";
 import { toPublicUser } from "./types";
 
@@ -38,6 +41,12 @@ interface AgroPulseState {
   notifications: Notification[];
   paymentMethods: Map<string, PaymentMethod>;
   sessions: Map<string, SessionRecord>;
+  /** reservas temporales de stock (carrito en vivo) */
+  reservations: Map<string, StockReservation>;
+  /** cupones de descuento, key = code en MAYÚSCULAS */
+  coupons: Map<string, Coupon>;
+  /** unidades vendidas (confirmadas) acumuladas por productId */
+  stockSold: Map<string, number>;
   seeded: boolean;
 }
 
@@ -57,10 +66,18 @@ function getState(): AgroPulseState {
       notifications: [],
       paymentMethods: new Map(),
       sessions: new Map(),
+      reservations: new Map(),
+      coupons: new Map(),
+      stockSold: new Map(),
       seeded: false,
     };
   }
-  return globalThis.__agropulseState;
+  const s = globalThis.__agropulseState;
+  // Migración suave para instancias creadas antes de añadir estos campos (HMR dev)
+  if (!s.reservations) s.reservations = new Map();
+  if (!s.coupons) s.coupons = new Map();
+  if (!s.stockSold) s.stockSold = new Map();
+  return s;
 }
 
 function seedIfNeeded(): void {
@@ -71,6 +88,9 @@ function seedIfNeeded(): void {
   // Pedidos demo persistentes (IDs determinísticos, NO sobrescriben si ya existen)
   for (const o of SEED_ORDERS) {
     if (!s.orders.has(o.id)) s.orders.set(o.id, o);
+  }
+  for (const c of SEED_COUPONS) {
+    if (!s.coupons.has(c.code)) s.coupons.set(c.code, c);
   }
   s.seeded = true;
 }
@@ -388,5 +408,141 @@ export const sessionsDb = {
   },
   invalidate(id: string): void {
     getState().sessions.delete(id);
+  },
+};
+
+// ============================================================================
+// STOCK RESERVATIONS — stock en vivo con reserva temporal (TTL 2h)
+// ============================================================================
+
+export const RESERVATION_TTL_HOURS = 2;
+
+/** Marca expiradas las reservas activas cuyo expiresAt ya pasó. */
+function sweepExpiredReservations(): void {
+  const now = Date.now();
+  for (const [id, r] of getState().reservations) {
+    if (r.status === "activa" && new Date(r.expiresAt).getTime() <= now) {
+      getState().reservations.set(id, { ...r, status: "expirada" });
+    }
+  }
+}
+
+export const reservationsDb = {
+  /** Reserva activa de un usuario para un producto (si existe). */
+  findActiveByUserProduct(userId: string, productId: string): StockReservation | undefined {
+    sweepExpiredReservations();
+    for (const r of getState().reservations.values()) {
+      if (r.status === "activa" && r.userId === userId && r.productId === productId) {
+        return r;
+      }
+    }
+    return undefined;
+  },
+  listActiveByUser(userId: string): StockReservation[] {
+    sweepExpiredReservations();
+    return Array.from(getState().reservations.values()).filter(
+      (r) => r.status === "activa" && r.userId === userId,
+    );
+  },
+  /**
+   * Crea o actualiza (upsert) la reserva del usuario para un producto.
+   * quantity <= 0 libera la reserva. Renueva el TTL en cada cambio.
+   */
+  upsert(userId: string, productId: string, quantity: number, unit: string): StockReservation | null {
+    sweepExpiredReservations();
+    const existing = this.findActiveByUserProduct(userId, productId);
+    if (quantity <= 0) {
+      if (existing) {
+        getState().reservations.set(existing.id, { ...existing, status: "liberada" });
+      }
+      return null;
+    }
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + RESERVATION_TTL_HOURS * 3600_000).toISOString();
+    if (existing) {
+      const updated = { ...existing, quantity, unit, expiresAt };
+      getState().reservations.set(existing.id, updated);
+      return updated;
+    }
+    const r: StockReservation = {
+      id: `rsv-${userId}-${productId}`,
+      productId,
+      userId,
+      quantity,
+      unit,
+      createdAt: now.toISOString(),
+      expiresAt,
+      status: "activa",
+    };
+    getState().reservations.set(r.id, r);
+    return r;
+  },
+  /** Confirma la reserva del usuario al crear el pedido (deja de expirar). */
+  confirmByUserProduct(userId: string, productId: string, orderId: string): void {
+    const r = this.findActiveByUserProduct(userId, productId);
+    if (r) {
+      getState().reservations.set(r.id, { ...r, status: "confirmada", orderId });
+    }
+  },
+  /** Libera todas las reservas activas de un usuario (ej. carrito vaciado). */
+  releaseAllByUser(userId: string): void {
+    for (const r of this.listActiveByUser(userId)) {
+      getState().reservations.set(r.id, { ...r, status: "liberada" });
+    }
+  },
+  /** Cantidad total reservada (activa, no expirada) para un producto. */
+  getReservedQuantity(productId: string): number {
+    sweepExpiredReservations();
+    let total = 0;
+    for (const r of getState().reservations.values()) {
+      if (r.status === "activa" && r.productId === productId) total += r.quantity;
+    }
+    return total;
+  },
+};
+
+// ============================================================================
+// STOCK — ventas confirmadas + stock efectivo
+// ============================================================================
+
+export const stockDb = {
+  /** Unidades ya vendidas (pedidos confirmados) de un producto. */
+  getSold(productId: string): number {
+    return getState().stockSold.get(productId) ?? 0;
+  },
+  /** Registra unidades vendidas al confirmar un pedido. */
+  addSold(productId: string, quantity: number): void {
+    const current = getState().stockSold.get(productId) ?? 0;
+    getState().stockSold.set(productId, current + quantity);
+  },
+  /**
+   * Stock efectivo = stock base − vendido − reservado activo.
+   * El caller provee el stock base (products.ts o lot.quantity).
+   */
+  getEffective(productId: string, baseStock: number): number {
+    const sold = this.getSold(productId);
+    const reserved = reservationsDb.getReservedQuantity(productId);
+    return Math.max(0, baseStock - sold - reserved);
+  },
+};
+
+// ============================================================================
+// COUPONS — cupones de descuento
+// ============================================================================
+
+export const couponsDb = {
+  findByCode(code: string): Coupon | undefined {
+    seedIfNeeded();
+    return getState().coupons.get(code.trim().toUpperCase());
+  },
+  list(): Coupon[] {
+    seedIfNeeded();
+    return Array.from(getState().coupons.values());
+  },
+  incrementUse(code: string): void {
+    const c = this.findByCode(code);
+    if (c) {
+      getState().coupons.set(c.code, { ...c, usedCount: c.usedCount + 1 });
+    }
   },
 };

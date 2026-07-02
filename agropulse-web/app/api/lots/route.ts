@@ -9,6 +9,7 @@ import { lotsDb, auditDb, usersDb } from "@/lib/db/store";
 import { COUNTRIES, type CountryCode, getCountry } from "@/lib/countries";
 import type { Lot, LotStatus } from "@/lib/db/types";
 import { sendEmail, AGROPULSE_INBOX } from "@/lib/notifications/email";
+import { resolveProductImage } from "@/lib/product-images";
 
 const createLotSchema = z.object({
   productName: z.string().min(3),
@@ -127,7 +128,13 @@ export async function POST(req: NextRequest) {
     expirationDate,
     certifications: data.certifications,
     description: data.description,
-    images: data.imageUrl ? [data.imageUrl] : [],
+    // Si el productor no aporta URL (o es inválida/vacía), se asigna la
+    // imagen automática por nombre + categoría (lib/product-images.ts).
+    images: [
+      data.imageUrl && /^https?:\/\//i.test(data.imageUrl.trim())
+        ? data.imageUrl.trim()
+        : resolveProductImage(data.productName, data.category),
+    ],
     status: data.status,
     urgencia: urgenciaFromShelf(daysUntil),
     createdAt: new Date().toISOString(),

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ordersDb, usersDb, auditDb } from "@/lib/db/store";
 import { ORDER_STATUS_FLOW, type OrderStatus } from "@/lib/db/types";
+import { ensureProgress } from "@/lib/orders/progression";
 import { sendEmail } from "@/lib/notifications/email";
 import { orderStatusEmail } from "@/lib/notifications/templates";
 
@@ -58,7 +59,10 @@ export async function GET(
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
   const { id } = await ctx.params;
-  const order = ordersDb.findById(id);
+  const found = ordersDb.findById(id);
+  // Avance determinístico ANTES de evaluar permisos/responder — el estado
+  // devuelto siempre refleja el tiempo transcurrido (monótono).
+  const order = found ? ensureProgress(found) : undefined;
   // Defensa en profundidad: no exponer si existe o no cuando el usuario
   // no tiene permisos — siempre devolver el mismo 404.
   if (!order || !canView(order, session.user)) {

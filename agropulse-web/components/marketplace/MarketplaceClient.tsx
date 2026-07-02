@@ -15,59 +15,19 @@ import {
   urgencias,
   getRegionsForCountry,
 } from "@/lib/mock-data/products";
-import { COUNTRIES, getCountry, type CountryCode } from "@/lib/countries";
+import { COUNTRIES, type CountryCode } from "@/lib/countries";
 import { useCountryStore } from "@/lib/stores/country-store";
-import type { Product, ProductoCategoria, Urgencia } from "@/lib/types";
+import { lotToProductView, type ProductView } from "@/lib/lot-utils";
+import { useSSE } from "@/lib/realtime/useSSE";
 import type { Lot } from "@/lib/db/types";
 
 const PER_PAGE = 12;
 
-/** Convierte un lote dinámico al shape de Product para reutilizar ProductCard */
-function lotToProduct(lot: Lot): Product {
-  const country = getCountry(lot.country);
-  const daysToExpiry = Math.max(
-    0,
-    Math.floor(
-      (new Date(lot.expirationDate).getTime() - Date.now()) / 86_400_000,
-    ),
-  );
-  return {
-    id: lot.id,
-    slug: lot.productSlug,
-    nombre: lot.productName,
-    categoria: lot.category as ProductoCategoria,
-    country: lot.country,
-    productor: {
-      id: lot.productorId,
-      nombre: lot.productorName,
-      region: lot.region,
-      estado: lot.region,
-      certificaciones: lot.certifications,
-      rating: 4.7,
-      yearsActive: 5,
-    },
-    precio: lot.pricePerUnit,
-    unidad: lot.unit,
-    stock: lot.quantity,
-    fechaCosecha: lot.harvestDate,
-    vidaUtilDias: daysToExpiry,
-    urgencia: lot.urgencia as Urgencia,
-    imagen: lot.images[0] ?? "",
-    galeria: lot.images,
-    certificaciones: lot.certifications,
-    condicionesIoT: {
-      temperaturaC: 14,
-      humedadPct: 80,
-      ultimaLectura: new Date().toISOString(),
-      rangoOptimoTemp: [10, 18],
-      rangoOptimoHumedad: [70, 90],
-    },
-    descripcion: lot.description,
-    sensorId: lot.sensorId ?? "—",
-    loteId: lot.id,
-    /** flag interno usado por MarketplaceClient para marcar como recién publicado */
-    ...({ _isFresh: country && Date.now() - new Date(lot.createdAt).getTime() < 48 * 3600 * 1000 } as object),
-  } as Product & { _isFresh?: boolean };
+/** Payload del stream SSE de stock en vivo (/api/stream/stock). */
+interface StockTick {
+  ts: string;
+  country: CountryCode;
+  stocks: Record<string, number>;
 }
 
 export function MarketplaceClient() {
@@ -115,6 +75,16 @@ export function MarketplaceClient() {
 
   const effectiveCountry: CountryCode = mounted ? country : "MX";
 
+  // Stock en vivo (SSE): mapa { productId → stock efectivo } del país activo.
+  // El stream cierra a ~9s y useSSE reconecta solo (patrón Vercel-safe).
+  const { data: stockTick } = useSSE<StockTick>(
+    mounted ? `/api/stream/stock?country=${effectiveCountry}` : null,
+  );
+  const liveStocks =
+    stockTick && stockTick.country === effectiveCountry
+      ? stockTick.stocks
+      : undefined;
+
   const staticFiltered = useMemo(
     () =>
       filterProducts({
@@ -131,7 +101,7 @@ export function MarketplaceClient() {
     () =>
       dynamicLots
         .filter((l) => l.country === effectiveCountry)
-        .map(lotToProduct),
+        .map(lotToProductView),
     [dynamicLots, effectiveCountry],
   );
 
@@ -407,8 +377,15 @@ export function MarketplaceClient() {
                   className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5"
                 >
                   {visible.map((p) => {
-                    const fresh = (p as Product & { _isFresh?: boolean })._isFresh === true;
-                    return <ProductCard key={p.id} product={p} freshBadge={fresh} />;
+                    const fresh = (p as ProductView)._isFresh === true;
+                    return (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        freshBadge={fresh}
+                        liveStock={liveStocks?.[p.id]}
+                      />
+                    );
                   })}
                 </motion.div>
               </AnimatePresence>

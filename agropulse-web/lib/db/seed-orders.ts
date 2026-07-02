@@ -10,6 +10,11 @@
  *   - 1 pedido del cliente CO `u-cli-co-001` (en_transito)
  *   - 2 pedidos al productor CR `u-prod-cr-001` (confirmado_productor / empacado)
  *   - 1 pedido asignado a logística CR `u-log-cr-001` (ultima_milla)
+ *
+ * IMPORTANTE: todos llevan `autoProgress: false` — sus estados son FIJOS y
+ * estables entre cold starts (AP-2026-0001 siempre "recibido", etc.). Solo los
+ * pedidos creados en runtime (checkout) usan autoProgress: true y avanzan
+ * solos según el reloj (lib/orders/progression.ts).
  */
 import type { OrderExtended, OrderItem, OrderStatusHistoryEntry } from "./types";
 
@@ -113,6 +118,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       notes: "Entregar en recepción del edificio. Llamar a María al llegar.",
       createdAt: "2026-05-10T14:20:00Z",
       country: "CR",
+      autoProgress: false,
     };
   })(),
 
@@ -179,6 +185,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       estimatedDelivery: "2026-04-30T16:00:00Z",
       createdAt: "2026-04-28T09:10:00Z",
       country: "CR",
+      autoProgress: false,
     };
   })(),
 
@@ -234,6 +241,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       notes: "Importación con permiso ICA #44128. Cadena de frío obligatoria.",
       createdAt: "2026-05-05T16:40:00Z",
       country: "CO",
+      autoProgress: false,
     };
   })(),
 
@@ -283,6 +291,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       estimatedDelivery: "2026-05-18T16:00:00Z",
       createdAt: "2026-05-09T11:25:00Z",
       country: "CR",
+      autoProgress: false,
     };
   })(),
 
@@ -335,6 +344,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       notes: "Pendiente asignar transporte logística para envío a CO.",
       createdAt: "2026-05-07T08:00:00Z",
       country: "CR",
+      autoProgress: false,
     };
   })(),
 
@@ -390,6 +400,7 @@ export const SEED_ORDERS: OrderExtended[] = [
       estimatedDelivery: "2026-05-12T10:30:00Z",
       createdAt: "2026-05-08T10:15:00Z",
       country: "CR",
+      autoProgress: false,
     };
   })(),
 ];

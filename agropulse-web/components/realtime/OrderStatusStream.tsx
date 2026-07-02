@@ -1,15 +1,21 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle2,
   Circle,
   Loader2,
   PackageX,
+  ShieldCheck,
   Wifi,
   WifiOff,
 } from "lucide-react";
 import { useSSE } from "@/lib/realtime/useSSE";
+import {
+  bumpStatusIndex,
+  getCachedStatusIndex,
+} from "@/lib/stores/order-status-cache";
 import {
   ORDER_STATUS_FLOW,
   type OrderExtended,
@@ -87,6 +93,40 @@ export function OrderStatusStream({
   const effectiveHistory = order?.statusHistory ?? initialHistory ?? [];
   const shortCode = order?.shortCode ?? orderId;
 
+  // ── Guard monotónico client-side ─────────────────────────────────────────
+  // Defensa contra cold starts del server: mostramos SIEMPRE el máximo entre
+  // el índice reportado por el server y el cacheado en localStorage.
+  // El estado "cancelado" se muestra tal cual (no aplica el guard).
+  const serverIdx =
+    effectiveStatus && effectiveStatus !== "cancelado"
+      ? ORDER_STATUS_FLOW.indexOf(effectiveStatus)
+      : -1;
+  const [cachedIdx, setCachedIdx] = useState(-1);
+
+  // Leer el cache tras el mount (localStorage no existe en SSR).
+  useEffect(() => {
+    setCachedIdx(getCachedStatusIndex(orderId));
+  }, [orderId]);
+
+  // Bumpear el cache en cada update del server (solo guarda si idx > actual).
+  useEffect(() => {
+    if (serverIdx >= 0) {
+      bumpStatusIndex(orderId, serverIdx);
+      setCachedIdx((prev) => (serverIdx > prev ? serverIdx : prev));
+    }
+  }, [orderId, serverIdx]);
+
+  const isCancelled = effectiveStatus === "cancelado";
+  const displayIdx = isCancelled ? -1 : Math.max(serverIdx, cachedIdx);
+  const displayStatus: OrderStatus | undefined = isCancelled
+    ? "cancelado"
+    : displayIdx >= 0
+      ? ORDER_STATUS_FLOW[displayIdx]
+      : effectiveStatus;
+  // El server reporta MENOS que el cache → cold start re-seedeó; mostramos
+  // el estado cacheado con una nota discreta.
+  const syncedLocally = !isCancelled && serverIdx >= 0 && cachedIdx > serverIdx;
+
   if (notFound) {
     return (
       <div
@@ -108,7 +148,7 @@ export function OrderStatusStream({
     );
   }
 
-  if (!effectiveStatus) {
+  if (!effectiveStatus || !displayStatus) {
     return (
       <div
         className={cn(
@@ -122,10 +162,7 @@ export function OrderStatusStream({
     );
   }
 
-  const currentIdx =
-    effectiveStatus === "cancelado"
-      ? -1
-      : ORDER_STATUS_FLOW.indexOf(effectiveStatus);
+  const currentIdx = displayStatus === "cancelado" ? -1 : displayIdx;
 
   return (
     <div
@@ -145,16 +182,22 @@ export function OrderStatusStream({
           </h3>
           <AnimatePresence mode="popLayout">
             <motion.p
-              key={effectiveStatus}
+              key={displayStatus}
               initial={{ y: 6, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -6, opacity: 0 }}
               transition={{ duration: 0.25 }}
               className="text-sm text-muted mt-1"
             >
-              {STATUS_DESCRIPTIONS[effectiveStatus]}
+              {STATUS_DESCRIPTIONS[displayStatus]}
             </motion.p>
           </AnimatePresence>
+          {syncedLocally && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted">
+              <ShieldCheck size={11} className="text-emerald-600" />
+              Estado sincronizado localmente
+            </p>
+          )}
         </div>
         {connected ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -170,7 +213,7 @@ export function OrderStatusStream({
       </div>
 
       {/* Timeline */}
-      {effectiveStatus === "cancelado" ? (
+      {displayStatus === "cancelado" ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-red-100 text-red-700">
             <PackageX size={16} />

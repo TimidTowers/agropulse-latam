@@ -3,10 +3,15 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CountryCode } from "@/lib/countries";
+import {
+  syncReservation,
+  releaseAllReservations,
+} from "@/lib/commerce/reservations-client";
 
 /**
- * AgroPulse cart store — versión mejorada con peso/cantidad granular,
- * comisión 4%, envío estimado y verificación país.
+ * AgroPulse cart store — peso/cantidad granular, comisión 4%, verificación
+ * país, categoría (para cupones) y sincronización de reservas de stock:
+ * cada cambio de cantidad reserva/libera stock en el servidor (TTL 2h).
  */
 
 export interface CartItem {
@@ -24,6 +29,8 @@ export interface CartItem {
   currency: string;
   quantity: number;
   maxStock: number;
+  /** categoría del producto — usada por cupones por categoría */
+  category?: string;
 }
 
 export interface CartProductInput {
@@ -38,14 +45,18 @@ export interface CartProductInput {
   pricePerUnit: number;
   currency: string;
   maxStock: number;
+  category?: string;
 }
 
 interface CartState {
   items: CartItem[];
+  /** código de cupón aplicado (solo persistencia UI; el server re-valida) */
+  couponCode: string | null;
   addItem: (product: CartProductInput, quantity: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, qty: number) => void;
   clear: () => void;
+  setCoupon: (code: string | null) => void;
   getSubtotal: () => number;
   getCommission: () => number;
   getShipping: () => number;
@@ -67,6 +78,7 @@ interface CartState {
     productorId?: string;
     maxStock?: number;
     currency?: string;
+    categoria?: string;
   }) => void;
   remove: (productId: string) => void;
   setCantidad: (productId: string, cantidad: number) => void;
@@ -85,40 +97,45 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      couponCode: null,
 
       addItem: (product, quantity) => {
         const qty = Math.max(0, quantity);
         if (qty <= 0) return;
         const existing = get().items.find((i) => i.productId === product.productId);
+        let newQty: number;
         if (existing) {
+          newQty = safeQty(existing.quantity + qty, product.maxStock);
           set({
             items: get().items.map((i) =>
-              i.productId === product.productId
-                ? {
-                    ...i,
-                    quantity: safeQty(i.quantity + qty, product.maxStock),
-                  }
-                : i,
+              i.productId === product.productId ? { ...i, quantity: newQty } : i,
             ),
           });
         } else {
+          newQty = safeQty(qty, product.maxStock);
           set({
             items: [
               ...get().items,
               {
                 id: product.productId,
                 ...product,
-                quantity: safeQty(qty, product.maxStock),
+                quantity: newQty,
               },
             ],
           });
         }
+        // Reserva de stock en vivo (fire-and-forget, requiere sesión)
+        syncReservation(product.productId, newQty, product.unit);
       },
 
-      removeItem: (productId) =>
-        set({ items: get().items.filter((i) => i.productId !== productId) }),
+      removeItem: (productId) => {
+        const item = get().items.find((i) => i.productId === productId);
+        set({ items: get().items.filter((i) => i.productId !== productId) });
+        if (item) syncReservation(productId, 0, item.unit);
+      },
 
-      updateQuantity: (productId, qty) =>
+      updateQuantity: (productId, qty) => {
+        const item = get().items.find((i) => i.productId === productId);
         set({
           items: get()
             .items.map((i) =>
@@ -127,9 +144,19 @@ export const useCartStore = create<CartState>()(
                 : i,
             )
             .filter((i) => i.quantity > 0),
-        }),
+        });
+        if (item) {
+          syncReservation(productId, safeQty(qty, item.maxStock), item.unit);
+        }
+      },
 
-      clear: () => set({ items: [] }),
+      clear: () => {
+        set({ items: [], couponCode: null });
+        releaseAllReservations();
+      },
+
+      setCoupon: (code) =>
+        set({ couponCode: code ? code.trim().toUpperCase() : null }),
 
       getSubtotal: () =>
         get().items.reduce((acc, i) => acc + i.pricePerUnit * i.quantity, 0),
@@ -167,6 +194,7 @@ export const useCartStore = create<CartState>()(
           pricePerUnit: item.precio,
           currency: item.currency ?? "USD",
           maxStock: item.maxStock ?? 9999,
+          category: item.categoria,
         };
         get().addItem(input, item.cantidad);
       },

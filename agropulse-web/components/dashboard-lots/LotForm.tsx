@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { resolveProductImage } from "@/lib/product-images";
 import type { CountryCode } from "@/lib/countries";
 
 const CATEGORIES = [
@@ -128,7 +129,15 @@ export function LotForm({
 
   const productName = watch("productName");
   const imageUrl = watch("imageUrl");
+  const category = watch("category");
   const certifications = watch("certifications") ?? [];
+
+  // Imagen automática que asignará el API si el campo URL queda vacío:
+  // resuelta por keywords del nombre + categoría (lib/product-images.ts).
+  const suggestedImage =
+    !imageUrl && productName.trim().length >= 3
+      ? resolveProductImage(productName, category)
+      : null;
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -309,10 +318,10 @@ export function LotForm({
         />
       </Field>
 
-      <Field label="URL de imagen" error={errors.imageUrl?.message}>
+      <Field label="URL de imagen (opcional)" error={errors.imageUrl?.message}>
         <Input
           type="url"
-          placeholder="https://images.unsplash.com/..."
+          placeholder="https://images.unsplash.com/... (déjalo vacío para asignación automática)"
           {...register("imageUrl")}
         />
       </Field>
@@ -323,10 +332,33 @@ export function LotForm({
           <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
         </div>
       )}
-      {!imageUrl && (
+      {!imageUrl && suggestedImage && (
+        <div className="max-w-md">
+          <div className="rounded-xl overflow-hidden border border-border-soft aspect-video bg-surface-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={suggestedImage}
+              alt={`Imagen automática sugerida para ${productName}`}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted inline-flex items-center gap-1.5">
+            <ImagePlus size={13} className="text-brand" />
+            <span>
+              <strong className="text-ink">Imagen automática sugerida</strong>{" "}
+              según nombre y categoría. Puedes publicar sin URL: se asignará
+              esta imagen.
+            </span>
+          </p>
+        </div>
+      )}
+      {!imageUrl && !suggestedImage && (
         <div className="rounded-xl border border-dashed border-border-soft p-8 max-w-md grid place-items-center text-muted">
           <ImagePlus size={28} />
-          <p className="text-xs mt-2">Pega una URL de imagen para previsualizar</p>
+          <p className="text-xs mt-2 text-center">
+            Escribe el nombre del producto para ver la imagen automática, o
+            pega una URL propia para previsualizar.
+          </p>
         </div>
       )}
 

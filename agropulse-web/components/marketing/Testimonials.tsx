@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { Container } from "@/components/ui/Container";
-import { Quote, Star } from "lucide-react";
+import { ArrowRight, Quote, Star } from "lucide-react";
 
 const testimonios = [
   {
@@ -72,6 +73,16 @@ export function Testimonials() {
               </figcaption>
             </figure>
           ))}
+        </div>
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/casos-de-exito"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:text-brand-dark transition-colors"
+          >
+            Ver todos los casos de éxito
+            <ArrowRight size={15} />
+          </Link>
         </div>
       </Container>
     </section>

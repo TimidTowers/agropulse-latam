@@ -107,20 +107,36 @@ export function orderConfirmationEmail(opts: OrderConfirmationOpts): {
     </table>
   `;
 
-  // Totales
+  // Totales — retrocompatible con pedidos sin descuentos (campos opcionales)
+  const discountLines = order.discountLines ?? [];
+  const discountTotal = order.discountTotal ?? 0;
+  // total = (subtotal − descuentos) + comisión + envío + fee de pago
   const paymentFee = Math.max(
     0,
     order.total -
-      order.subtotal -
+      order.subtotal +
+      discountTotal -
       order.commissionFee -
       order.shippingFee,
   );
+
+  const discountRowsHtml = discountLines
+    .map(
+      (l) => `
+    <tr>
+      <td colspan="2" style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.brand}; font-weight: 600;">${esc(l.label)}</td>
+      <td style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.brand}; font-weight: 600; text-align: right; white-space: nowrap;">${l.amount > 0 ? `&minus;${formatMoney(l.amount, order.currency)}` : "Gratis"}</td>
+    </tr>
+  `,
+    )
+    .join("");
 
   const totalsRows = `
     <tr>
       <td colspan="2" style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.muted};">Subtotal</td>
       <td style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.ink}; text-align: right; white-space: nowrap;">${formatMoney(order.subtotal, order.currency)}</td>
     </tr>
+    ${discountRowsHtml}
     <tr>
       <td colspan="2" style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.muted};">Comisión AgroPulse (4%)</td>
       <td style="padding: 10px 0; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; color: ${TOKENS.ink}; text-align: right; white-space: nowrap;">${formatMoney(order.commissionFee, order.currency)}</td>
@@ -233,7 +249,12 @@ ${order.items
   .join("\n")}
 
 Subtotal: ${formatMoney(order.subtotal, order.currency)}
-Comisión AgroPulse: ${formatMoney(order.commissionFee, order.currency)}
+${discountLines
+  .map(
+    (l) =>
+      `${l.label}: ${l.amount > 0 ? `-${formatMoney(l.amount, order.currency)}` : "Gratis"}`,
+  )
+  .join("\n")}${discountLines.length > 0 ? "\n" : ""}Comisión AgroPulse: ${formatMoney(order.commissionFee, order.currency)}
 Envío: ${formatMoney(order.shippingFee, order.currency)}
 TOTAL: ${formatMoney(order.total, order.currency)}
 

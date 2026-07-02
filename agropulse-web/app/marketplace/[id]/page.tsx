@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   MapPin,
   Calendar,
   Clock,
   Package,
+  PackageSearch,
   ShieldCheck,
+  Sprout,
   Star,
   Thermometer,
   Droplets,
   QrCode,
+  Info,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
@@ -19,20 +21,41 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { getProductById, products } from "@/lib/mock-data/products";
+import { lotsDb } from "@/lib/db/store";
+import { lotToProductView } from "@/lib/lot-utils";
 import { formatDate } from "@/lib/utils";
 import { formatPrice, getCountry } from "@/lib/countries";
 import { AddToCartButton } from "@/components/marketplace/AddToCartButton";
+import { LiveStock } from "@/components/marketplace/LiveStock";
 import { ProductImage } from "@/components/marketplace/ProductImage";
+import type { Product } from "@/lib/types";
 
 export async function generateStaticParams() {
   return products.map((p) => ({ id: p.id }));
+}
+
+/**
+ * Resuelve el id contra el catálogo estático y, si no existe, contra los
+ * lotes dinámicos creados por productores (lotsDb). Los IDs desconocidos
+ * se renderizan on-demand en el server (dynamicParams=true por defecto),
+ * donde lotsDb SÍ está disponible.
+ */
+function resolveProductOrLot(id: string): {
+  product: Product | undefined;
+  isDynamicLot: boolean;
+} {
+  const staticProduct = getProductById(id);
+  if (staticProduct) return { product: staticProduct, isDynamicLot: false };
+  const lot = lotsDb.findById(id);
+  if (lot) return { product: lotToProductView(lot), isDynamicLot: true };
+  return { product: undefined, isDynamicLot: false };
 }
 
 export async function generateMetadata(
   props: PageProps<"/marketplace/[id]">,
 ): Promise<Metadata> {
   const { id } = await props.params;
-  const p = getProductById(id);
+  const { product: p } = resolveProductOrLot(id);
   if (!p) return { title: "Lote no encontrado — AgroPulse" };
   return {
     title: `${p.nombre} — ${p.productor.nombre} | AgroPulse`,
@@ -40,12 +63,43 @@ export async function generateMetadata(
   };
 }
 
+function LotNotFound() {
+  return (
+    <>
+      <Navbar />
+      <main className="flex-1 bg-background">
+        <Container className="py-24">
+          <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-border-soft bg-surface p-12 text-center">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-surface-2 text-muted">
+              <PackageSearch size={26} />
+            </div>
+            <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink">
+              Lote no encontrado
+            </h1>
+            <p className="mt-2 text-muted leading-relaxed">
+              Puede haber expirado de la memoria demo o el enlace es
+              incorrecto. Los lotes publicados por productores viven en
+              memoria y se reinician periódicamente.
+            </p>
+            <Link href="/marketplace" className="inline-block mt-7">
+              <Button size="lg">
+                <ArrowLeft size={16} /> Volver al marketplace
+              </Button>
+            </Link>
+          </div>
+        </Container>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
 export default async function ProductPage(
   props: PageProps<"/marketplace/[id]">,
 ) {
   const { id } = await props.params;
-  const p = getProductById(id);
-  if (!p) notFound();
+  const { product: p, isDynamicLot } = resolveProductOrLot(id);
+  if (!p) return <LotNotFound />;
 
   const urgVariant =
     p.urgencia === "alta"
@@ -130,6 +184,11 @@ export default async function ProductPage(
                       ? "Vender pronto"
                       : "Stock fresco"}
                 </Badge>
+                {isDynamicLot && (
+                  <Badge variant="brand" className="bg-brand text-white">
+                    <Sprout size={11} /> Lote publicado por productor
+                  </Badge>
+                )}
               </div>
               <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
                 {p.nombre}
@@ -145,12 +204,12 @@ export default async function ProductPage(
                 </p>
                 <p className="pb-1.5 text-muted">por {p.unidad}</p>
               </div>
-              <p className="text-sm text-muted">
-                Stock disponible:{" "}
-                <strong className="text-ink">
-                  {p.stock.toLocaleString(country.locale)} {p.unidad}
-                </strong>
-              </p>
+              <LiveStock
+                productId={p.id}
+                unit={p.unidad}
+                initialStock={p.stock}
+                locale={country.locale}
+              />
 
               <p className="mt-6 text-ink/85 leading-relaxed">{p.descripcion}</p>
 
@@ -168,12 +227,19 @@ export default async function ProductPage(
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <AddToCartButton product={p} />
-                <Link href={`/trazabilidad/${p.loteId}`}>
-                  <Button size="xl" variant="outline">
-                    <QrCode size={16} />
-                    Ver trazabilidad
-                  </Button>
-                </Link>
+                {isDynamicLot ? (
+                  <div className="inline-flex items-center gap-2 rounded-xl border border-border-soft bg-surface-2 px-4 py-2.5 text-sm text-muted">
+                    <Info size={15} className="text-brand shrink-0" />
+                    Trazabilidad disponible tras la primera venta
+                  </div>
+                ) : (
+                  <Link href={`/trazabilidad/${p.loteId}`}>
+                    <Button size="xl" variant="outline">
+                      <QrCode size={16} />
+                      Ver trazabilidad
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* Productor */}
@@ -242,6 +308,29 @@ export default async function ProductPage(
             </div>
           </div>
 
+          {/* Trazabilidad (solo aviso para lotes runtime) */}
+          {isDynamicLot && (
+            <section className="mt-12 rounded-2xl border border-dashed border-border-soft bg-surface p-7">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand/10 text-brand">
+                  <QrCode size={18} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold tracking-tight text-ink">
+                    Trazabilidad disponible tras la primera venta
+                  </h2>
+                  <p className="mt-1 text-sm text-muted leading-relaxed max-w-2xl">
+                    Este lote fue publicado recientemente por el productor y
+                    aún no registra eventos de cadena de suministro. En cuanto
+                    se confirme la primera venta, AgroPulse generará el QR de
+                    trazabilidad con cosecha, almacén, transporte y punto de
+                    venta.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Condiciones IoT en vivo */}
           <section className="mt-12 rounded-2xl border border-border-soft bg-surface p-7">
             <div className="flex items-center justify-between mb-6 gap-3">
@@ -250,11 +339,17 @@ export default async function ProductPage(
                   Condiciones IoT del lote
                 </h2>
                 <p className="text-sm text-muted">
-                  Sensor{" "}
-                  <span className="font-mono text-ink">{p.sensorId}</span> ·
-                  última lectura{" "}
-                  {new Date(p.condicionesIoT.ultimaLectura).toLocaleString(
-                    "es-MX",
+                  {isDynamicLot ? (
+                    <>Condiciones estimadas por categoría · el sensor se asigna al confirmar la primera venta</>
+                  ) : (
+                    <>
+                      Sensor{" "}
+                      <span className="font-mono text-ink">{p.sensorId}</span> ·
+                      última lectura{" "}
+                      {new Date(p.condicionesIoT.ultimaLectura).toLocaleString(
+                        "es-MX",
+                      )}
+                    </>
                   )}
                 </p>
               </div>

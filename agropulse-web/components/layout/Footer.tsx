@@ -29,7 +29,7 @@ const cols = [
       { href: "/nosotros", label: "Nosotros" },
       { href: "/blog", label: "Blog" },
       { href: "/contacto", label: "Contacto" },
-      { href: "#", label: "Casos de éxito" },
+      { href: "/casos-de-exito", label: "Casos de éxito" },
     ],
   },
   {

@@ -12,11 +12,22 @@ import {
   AlertTriangle,
   Lock,
   PackageCheck,
+  Tag,
+  X,
+  BadgePercent,
+  Timer,
+  Loader2,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { useCartStore } from "@/lib/stores/cart-store";
 import { formatPriceByCode, getCountry } from "@/lib/countries";
+import { computeDiscounts, PRODUCER_DISCOUNT_PCT } from "@/lib/commerce/discounts";
+import {
+  requestCouponValidation,
+  toCoupon,
+  type AppliedCoupon,
+} from "./coupon-client";
 import { QuantityInput } from "./QuantityInput";
 
 interface ToastMsg {
@@ -30,18 +41,67 @@ export function CartPageClient() {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const clear = useCartStore((s) => s.clear);
   const getSubtotal = useCartStore((s) => s.getSubtotal);
-  const getCommission = useCartStore((s) => s.getCommission);
   const getShipping = useCartStore((s) => s.getShipping);
-  const getTotal = useCartStore((s) => s.getTotal);
   const getCountrySet = useCartStore((s) => s.getCountrySet);
   const getTotalUnits = useCartStore((s) => s.getTotalUnits);
+  const couponCode = useCartStore((s) => s.couponCode);
+  const setCoupon = useCartStore((s) => s.setCoupon);
 
   const { data: session, status } = useSession();
   const authed = status === "authenticated" && !!session?.user;
   const userCountry = session?.user?.country;
+  const userRole = session?.user?.role;
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // ── Cupón de descuento ────────────────────────────────────────────────
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  // Rehidrata el chip si hay un código persistido (zustand persist) y aún no
+  // tenemos el detalle del cupón; si dejó de ser válido, se descarta.
+  useEffect(() => {
+    if (!mounted || !authed || !couponCode || items.length === 0) return;
+    if (appliedCoupon?.code === couponCode) return;
+    let cancelled = false;
+    requestCouponValidation(couponCode, items).then((res) => {
+      if (cancelled) return;
+      if (res.ok && res.coupon) {
+        setAppliedCoupon(res.coupon);
+      } else {
+        setAppliedCoupon(null);
+        setCoupon(null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, authed, couponCode, items, appliedCoupon, setCoupon]);
+
+  const handleApplyCoupon = useCallback(async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    const res = await requestCouponValidation(code, items);
+    setApplyingCoupon(false);
+    if (res.ok && res.coupon) {
+      setAppliedCoupon(res.coupon);
+      setCoupon(res.coupon.code);
+      setCouponInput("");
+    } else {
+      setCouponError(res.reason ?? "Cupón no válido");
+    }
+  }, [couponInput, items, setCoupon]);
+
+  const handleRemoveCoupon = useCallback(() => {
+    setAppliedCoupon(null);
+    setCoupon(null);
+    setCouponError(null);
+  }, [setCoupon]);
 
   // Toast simple inline
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
@@ -100,11 +160,33 @@ export function CartPageClient() {
     authed && userCountry && countrySet.length === 1 && userCountry !== cartCountry;
 
   const subtotal = getSubtotal();
-  const commission = getCommission();
   const shipping = getShipping();
-  const total = getTotal();
   const totalUnits = getTotalUnits();
   const currencyCode = cartCountry ?? "CR";
+
+  // Descuentos (mismo motor que POST /api/orders): cupón aplicado + 8%
+  // automático si el usuario logueado es productor.
+  const discounts = computeDiscounts({
+    items: items.map((i) => ({
+      productId: i.productId,
+      productName: i.name,
+      category: i.category,
+      subtotal: i.pricePerUnit * i.quantity,
+    })),
+    subtotal,
+    shippingFee: shipping, // en el carrito el envío aún no se conoce (se calcula en checkout)
+    coupon: appliedCoupon ? toCoupon(appliedCoupon) : null,
+    buyerRole: userRole ?? "cliente",
+  });
+  const discountTotal = discounts.discountTotal;
+
+  // DECISIÓN: la comisión AgroPulse (4%) se recalcula sobre
+  // (subtotal − descuentos), NO sobre el subtotal bruto, porque así la
+  // calcula el server de forma autoritativa en POST /api/orders — de lo
+  // contrario el total del carrito no cuadraría con el pedido creado.
+  const discountedSubtotal = Math.max(0, subtotal - discountTotal);
+  const commission = Math.round(discountedSubtotal * 0.04);
+  const total = discountedSubtotal + commission + discounts.shippingFee;
 
   // Defensa adicional: si algún item supera stock, deshabilita checkout
   const hasOverstock = items.some((i) => i.quantity > i.maxStock);
@@ -288,6 +370,18 @@ export function CartPageClient() {
 
         <aside className="rounded-2xl border border-border-soft bg-surface p-5 h-fit lg:sticky lg:top-20">
           <h2 className="font-semibold text-ink mb-4">Resumen</h2>
+
+          {authed && userRole === "productor" && (
+            <div className="mb-4 rounded-xl border border-brand/30 bg-brand/5 p-3 flex items-start gap-2">
+              <BadgePercent size={14} className="text-brand flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-ink">
+                Como productor tienes{" "}
+                <strong>{PRODUCER_DISCOUNT_PCT}% de descuento automático</strong>{" "}
+                en tus compras.
+              </p>
+            </div>
+          )}
+
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between">
               <span className="text-muted">Subtotal</span>
@@ -305,6 +399,16 @@ export function CartPageClient() {
               </span>{" "}
               en total
             </li>
+            {discounts.lines.map((line) => (
+              <li key={line.label} className="flex items-center justify-between">
+                <span className="text-brand">{line.label}</span>
+                <span className="text-brand tabular-nums font-medium">
+                  {line.amount > 0
+                    ? `−${formatPriceByCode(line.amount, currencyCode)}`
+                    : "Gratis"}
+                </span>
+              </li>
+            ))}
             <li className="flex items-center justify-between">
               <span className="text-muted">Comisión AgroPulse (4%)</span>
               <span className="text-ink tabular-nums">
@@ -314,12 +418,87 @@ export function CartPageClient() {
             <li className="flex items-center justify-between">
               <span className="text-muted">Envío estimado</span>
               <span className="text-muted tabular-nums">
-                {shipping === 0
-                  ? "Se calcula en checkout"
-                  : formatPriceByCode(shipping, currencyCode)}
+                {appliedCoupon?.freeShipping
+                  ? "Gratis con tu cupón"
+                  : shipping === 0
+                    ? "Se calcula en checkout"
+                    : formatPriceByCode(shipping, currencyCode)}
               </span>
             </li>
           </ul>
+
+          {/* Cupón de descuento */}
+          <div className="mt-4 border-t border-border-soft pt-4">
+            <p className="text-xs font-semibold text-ink mb-2 inline-flex items-center gap-1.5">
+              <Tag size={12} className="text-brand" />
+              Cupón de descuento
+            </p>
+            {appliedCoupon ? (
+              <div className="flex items-start justify-between gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-brand-dark">
+                    {appliedCoupon.code}
+                  </p>
+                  <p className="text-[11px] text-ink/80">
+                    {appliedCoupon.description}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  aria-label="Quitar cupón"
+                  className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-lg text-brand-dark hover:bg-brand/20 transition-colors"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    if (couponError) setCouponError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleApplyCoupon();
+                    }
+                  }}
+                  placeholder="Ej. PURAVIDA10"
+                  disabled={!authed || applyingCoupon}
+                  className="min-w-0 flex-1 rounded-xl border border-border-soft bg-surface-2/60 px-3 py-2 text-sm text-ink uppercase placeholder:normal-case placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:opacity-60"
+                  aria-label="Código de cupón"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!authed || applyingCoupon || !couponInput.trim()}
+                  onClick={() => void handleApplyCoupon()}
+                >
+                  {applyingCoupon ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    "Aplicar"
+                  )}
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="mt-1.5 text-[11px] font-medium text-red-600" role="alert">
+                {couponError}
+              </p>
+            )}
+            {!authed && !appliedCoupon && (
+              <p className="mt-1.5 text-[11px] text-muted">
+                Inicia sesión para aplicar cupones.
+              </p>
+            )}
+          </div>
+
           <div className="border-t border-border-soft mt-4 pt-4 flex items-center justify-between">
             <span className="font-semibold text-ink">Total</span>
             <span className="text-lg font-semibold text-ink tabular-nums">
@@ -371,6 +550,14 @@ export function CartPageClient() {
           >
             <ShoppingCart size={14} /> Seguir comprando
           </Link>
+          {/* RESERVATION_TTL_HOURS = 2 (lib/db/store.ts). No importamos la
+              store server-side en el cliente para no arrastrar seeds al bundle. */}
+          {authed && (
+            <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted">
+              <Timer size={12} className="text-brand flex-shrink-0 mt-px" />
+              Tu stock está reservado por 2 horas mientras completas la compra.
+            </p>
+          )}
         </aside>
       </div>
 

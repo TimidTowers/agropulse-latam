@@ -1,6 +1,10 @@
 /**
  * GET   /api/orders  — lista pedidos del user (filtrado por rol)
- * POST  /api/orders  — crea pedido (rol: cliente)
+ * POST  /api/orders  — crea pedido (roles: cliente, productor, admin)
+ *
+ * Los productores compran con 8% de descuento automático (PRODUCER_DISCOUNT_PCT).
+ * El cálculo de cupones/descuentos/comisión es AUTORITATIVO aquí — nunca se
+ * confía en los totales del cliente.
  */
 import type { NextRequest } from "next/server";
 import { z } from "zod";
@@ -10,11 +14,18 @@ import {
   usersDb,
   paymentMethodsDb,
   auditDb,
+  couponsDb,
+  reservationsDb,
+  stockDb,
 } from "@/lib/db/store";
+import { validateCoupon, computeDiscounts } from "@/lib/commerce/discounts";
 import { COUNTRIES, type CountryCode } from "@/lib/countries";
-import type { OrderExtended, OrderItem, UserAddress } from "@/lib/db/types";
+import type { Coupon, OrderExtended, OrderItem, UserAddress, UserRole } from "@/lib/db/types";
 import { sendEmail, AGROPULSE_INBOX } from "@/lib/notifications/email";
 import { orderConfirmationEmail } from "@/lib/notifications/templates";
+
+/** Roles que pueden comprar en el marketplace. */
+const BUYER_ROLES: UserRole[] = ["cliente", "productor", "admin"];
 
 const addressSchema = z.object({
   line1: z.string().min(3),
@@ -36,6 +47,8 @@ const orderItemSchema = z.object({
   quantity: z.number().positive(),
   unit: z.string().min(1),
   unitPrice: z.number().nonnegative(),
+  /** categoría del producto — necesaria para cupones por categoría (FRUTAS15…) */
+  category: z.string().optional(),
 });
 
 const createOrderSchema = z.object({
@@ -52,6 +65,8 @@ const createOrderSchema = z.object({
   }),
   notes: z.string().optional(),
   acceptTerms: z.boolean(),
+  /** código de cupón aplicado en el carrito (se re-valida server-side) */
+  couponCode: z.string().min(1).max(40).optional(),
 });
 
 function nextShortCode(): string {
@@ -72,8 +87,14 @@ export async function GET() {
   let orders: OrderExtended[];
   if (role === "admin") orders = ordersDb.listAll();
   else if (role === "cliente") orders = ordersDb.listByCustomer(uid);
-  else if (role === "productor") orders = ordersDb.listByProductor(uid);
-  else if (role === "logistica") orders = ordersDb.listByLogistica(uid);
+  else if (role === "productor") {
+    // Un productor ve los pedidos que VENDE y también los que COMPRA
+    // (los productores pueden comprar con descuento automático del 8%).
+    const merged = new Map<string, OrderExtended>();
+    for (const o of ordersDb.listByProductor(uid)) merged.set(o.id, o);
+    for (const o of ordersDb.listByCustomer(uid)) merged.set(o.id, o);
+    orders = Array.from(merged.values());
+  } else if (role === "logistica") orders = ordersDb.listByLogistica(uid);
   else orders = [];
 
   return Response.json({ ok: true, orders });
@@ -84,9 +105,13 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
-  if (session.user.role !== "cliente") {
+  if (!BUYER_ROLES.includes(session.user.role)) {
     return Response.json(
-      { ok: false, error: "forbidden", message: "Solo clientes pueden crear pedidos." },
+      {
+        ok: false,
+        error: "forbidden",
+        message: "Solo clientes y productores pueden crear pedidos.",
+      },
       { status: 403 },
     );
   }
@@ -166,12 +191,60 @@ export async function POST(req: NextRequest) {
     unit: it.unit,
     unitPrice: it.unitPrice,
     subtotal: Math.round(it.unitPrice * it.quantity),
+    category: it.category,
   }));
 
   const subtotal = items.reduce((a, b) => a + b.subtotal, 0);
-  const commissionFee = Math.round(subtotal * 0.04);
-  const paymentFee = pm.feePct ? Math.round((subtotal * pm.feePct) / 100) : 0;
-  const total = subtotal + commissionFee + body.shippingFee + paymentFee;
+
+  // Cupón (opcional) — validación AUTORITATIVA server-side, nunca se confía
+  // en lo que validó el cliente en /api/coupons/validate.
+  let coupon: Coupon | null = null;
+  if (body.couponCode) {
+    const found = couponsDb.findByCode(body.couponCode);
+    const categories = Array.from(
+      new Set(items.map((i) => i.category).filter((c): c is string => !!c)),
+    );
+    const productIds = items.map((i) => i.productId);
+    const validation = validateCoupon(found, {
+      role: user.role,
+      country: user.country,
+      categories,
+      productIds,
+    });
+    if (!found || !validation.ok) {
+      return Response.json(
+        {
+          ok: false,
+          error: "invalid_coupon",
+          message: validation.reason ?? "Cupón no válido",
+        },
+        { status: 400 },
+      );
+    }
+    coupon = found;
+  }
+
+  // Descuentos: cupón + 8% automático si el comprador es productor.
+  const discounts = computeDiscounts({
+    items,
+    subtotal,
+    shippingFee: body.shippingFee,
+    coupon,
+    buyerRole: user.role,
+  });
+  const discountTotal = discounts.discountTotal;
+  // shippingFee ajustado (0 si el cupón es de delivery con envío gratis)
+  const shippingFee = discounts.shippingFee;
+
+  // DECISIÓN: la comisión AgroPulse (4%) y el fee del método de pago se
+  // calculan sobre (subtotal − descuentos) — el monto realmente cobrado —
+  // igual que el preview del carrito/checkout, para que ambos cuadren.
+  const discountedSubtotal = Math.max(0, subtotal - discountTotal);
+  const commissionFee = Math.round(discountedSubtotal * 0.04);
+  const paymentFee = pm.feePct
+    ? Math.round((discountedSubtotal * pm.feePct) / 100)
+    : 0;
+  const total = discountedSubtotal + commissionFee + shippingFee + paymentFee;
   const country = COUNTRIES.find((c) => c.code === orderCountry)!;
 
   const id = `o-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -195,7 +268,7 @@ export async function POST(req: NextRequest) {
     currency: country.currency,
     subtotal,
     commissionFee,
-    shippingFee: body.shippingFee,
+    shippingFee,
     total,
     paymentMethodId: pm.id,
     paymentMethodLabel: pm.name,
@@ -207,21 +280,48 @@ export async function POST(req: NextRequest) {
         timestamp: now,
         note: `Pedido creado vía web (${body.shippingMethod})`,
         by: user.id,
-        byRole: "cliente",
+        byRole: user.role,
       },
     ],
     estimatedDelivery: estimated,
     notes: body.notes,
     createdAt: now,
     country: orderCountry,
+    // Pedidos creados en runtime avanzan solos (lib/orders/progression.ts)
+    autoProgress: true,
+    couponCode: coupon?.code,
+    discountLines: discounts.lines.length > 0 ? discounts.lines : undefined,
+    discountTotal: discountTotal > 0 ? discountTotal : undefined,
   };
 
   ordersDb.create(order);
 
+  // Confirmación definitiva de stock: la reserva temporal (TTL 2h) pasa a
+  // "confirmada" y las unidades se registran como vendidas — el stock
+  // efectivo del marketplace baja de inmediato ("hay 10kg de uva menos").
+  for (const it of items) {
+    reservationsDb.confirmByUserProduct(user.id, it.productId, order.id);
+    stockDb.addSold(it.productId, it.quantity);
+  }
+
+  if (coupon) {
+    couponsDb.incrementUse(coupon.code);
+    auditDb.add({
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "coupon.apply",
+      resource: coupon.code,
+      success: true,
+      message: `Cupón ${coupon.code} aplicado al pedido ${shortCode} (−${discountTotal} ${country.currency} en descuentos)`,
+      metadata: { orderId: order.id, shortCode, couponCode: coupon.code, discountTotal },
+    });
+  }
+
   auditDb.add({
     userId: user.id,
     userEmail: user.email,
-    userRole: "cliente",
+    userRole: user.role,
     action: "order.create",
     resource: order.id,
     success: true,
