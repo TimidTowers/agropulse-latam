@@ -1,0 +1,501 @@
+/**
+ * Diccionarios i18n de AgroPulse — ES (fuente de verdad), EN y PT.
+ *
+ * ALCANCE (decisión documentada): la internacionalización cubre el "chrome"
+ * del sitio (Navbar, Footer) y la landing de marketing (Hero, Stats,
+ * FeatureGrid, HowItWorks, CTA). El contenido dinámico de productos,
+ * marketplace, checkout, pedidos y dashboards permanece en español en esta
+ * ronda. Se optó deliberadamente por un enfoque client-side (zustand persist
+ * en localStorage, clave "agropulse:locale") en lugar de reestructurar las
+ * rutas con segmentos /[locale]/ — así no se duplican rutas ni se toca el
+ * middleware/SEO, a costa de que el HTML SSR siempre salga en ES y el idioma
+ * se aplique tras el montaje (patrón hydration-safe en lib/i18n/store.ts).
+ *
+ * CÓMO EXTENDER:
+ * 1. Agrega la clave nueva en `es` (dentro de su sección) — es la fuente de
+ *    verdad tipada; TypeScript exigirá la misma clave en `en` y `pt`.
+ * 2. Para una sección nueva, añádela en `es` y replícala en `en`/`pt`.
+ * 3. En el componente (client): `const t = useT();` y `t("seccion", "clave")`.
+ *    Si falta una traducción en runtime, `translate` cae al valor en ES.
+ * 4. Placeholders: usa `{nombre}` en el texto y reemplaza en el componente
+ *    con `.replace("{nombre}", valor)` (ver `stats.lead` / `footer.copyright`).
+ */
+
+export type Locale = "es" | "en" | "pt";
+
+export const DEFAULT_LOCALE: Locale = "es";
+
+/** Metadatos para el selector de idioma. */
+export const LOCALES: {
+  code: Locale;
+  flag: string;
+  label: string;
+  name: string;
+}[] = [
+  { code: "es", flag: "🇪🇸", label: "ES", name: "Español" },
+  { code: "en", flag: "🇺🇸", label: "EN", name: "English" },
+  { code: "pt", flag: "🇧🇷", label: "PT", name: "Português" },
+];
+
+/** Tags BCP-47 para formateo de números/fechas según idioma. */
+export const LOCALE_TAGS: Record<Locale, string> = {
+  es: "es-CR",
+  en: "en-US",
+  pt: "pt-BR",
+};
+
+const es = {
+  navbar: {
+    inicio: "Inicio",
+    marketplace: "Marketplace",
+    paises: "Países",
+    productores: "Productores",
+    planes: "Planes",
+    nosotros: "Nosotros",
+    contacto: "Contacto",
+    carrito: "Carrito",
+    abrirMenu: "Abrir menú",
+    cerrarMenu: "Cerrar menú",
+    iniciarSesion: "Iniciar sesión",
+    comenzarGratis: "Comenzar gratis",
+    miCuenta: "Mi cuenta",
+    miPerfil: "Mi perfil",
+    misPedidos: "Mis pedidos",
+    misLotes: "Mis lotes",
+    misEnvios: "Mis envíos",
+    panelAdmin: "Panel admin",
+    cerrarSesion: "Cerrar sesión",
+    idioma: "Idioma",
+    cambiarIdioma: "Cambiar idioma",
+    seleccionaIdioma: "Selecciona tu idioma",
+  },
+  footer: {
+    tagline:
+      "El pulso inteligente de tu cosecha. AgriTech costarricense que reduce las pérdidas post-cosecha con IoT, ML y un marketplace B2B.",
+    madeIn: "Hecho en Costa Rica · Pura Vida AgriTech",
+    colProducto: "Producto",
+    colLatam: "LATAM",
+    colEmpresa: "Empresa",
+    colLegal: "Legal",
+    linkMarketplaceB2b: "Marketplace B2B",
+    linkDashboard: "Dashboard",
+    linkIot: "IoT en tiempo real",
+    linkPlanes: "Planes y precios",
+    linkPaises: "Países donde operamos",
+    linkProductores: "Productores",
+    linkSustentabilidad: "Sustentabilidad",
+    linkCarrito: "Carrito",
+    linkNosotros: "Nosotros",
+    linkBlog: "Blog",
+    linkContacto: "Contacto",
+    linkCasos: "Casos de éxito",
+    linkTerminos: "Términos de servicio",
+    linkPrivacidad: "Política de privacidad",
+    linkCookies: "Aviso de cookies",
+    linkDpo: "Contacto DPO",
+    ariaWhatsapp: "WhatsApp AgroPulse",
+    ariaEmail: "Email",
+    ariaLinkedin: "LinkedIn",
+    ariaSitio: "Sitio",
+    copyright:
+      "© {year} AgroPulse Technologies S.A. · Hecho en San José, Costa Rica 🇨🇷 · Operamos en 10 países LATAM.",
+    ods: "ODS 2 · ODS 12 · ODS 13 — Comprometidos con la sostenibilidad.",
+  },
+  hero: {
+    badge: "Hecho en Costa Rica · Pura Vida AgriTech",
+    title1: "El pulso ",
+    titleHighlight: "inteligente",
+    title2: "de tu cosecha.",
+    meta: "Sede San José · 10 países LATAM · desde 2024",
+    sub1: "AgroPulse es una AgriTech costarricense que reduce hasta un ",
+    subStrong: "40% las pérdidas post-cosecha",
+    sub2: " en productos perecederos mediante sensores IoT, analítica predictiva y un marketplace B2B. Conectamos directamente a productores y compradores en Costa Rica y toda Latinoamérica.",
+    ctaPrimary: "Probar 30 días gratis",
+    ctaSecondary: "Ver marketplace",
+    trustProducers: "+64,000 productores en LATAM",
+    trustGmvValue: "USD 80M",
+    trustGmvLabel: "GMV proyectado año 3",
+    mockMermas: "Mermas",
+    mockVentas: "Ventas mes",
+    mockTemp: "Temperatura cámara C01 (24h)",
+    mockEnRango: "En rango",
+    mockLote: "Lote L-2026-0211 con 3 días de vida útil",
+    mockPriorizar: "Priorizar venta en marketplace",
+  },
+  stats: {
+    kicker: "🇨🇷 Sede San José, Costa Rica · 10 países LATAM",
+    title1: "Una sola plataforma, ",
+    titleHighlight: "toda Latinoamérica.",
+    lead: "AgroPulse nació en Costa Rica y opera con precios y datos locales en {paises} países, conectando a más de {productores} productores con compradores B2B en todo el continente.",
+    counterPaises: "Países LATAM activos en la plataforma.",
+    counterProductores: "Productores conectados con datos en tiempo real.",
+    counterHectareas: "Hectáreas bajo monitoreo en LATAM.",
+    monedasSuffix: "monedas",
+    counterMonedas: "Precios en moneda local: MXN, COP, ARS, BRL, USD y más.",
+    problemKicker: "El problema",
+    problemTitle1: "Cada año se pierden millones de toneladas de alimentos",
+    problemTitle2: " entre la cosecha y la mesa del consumidor.",
+    stat1Value: "30-40%",
+    stat1Label: "de la producción agrícola se pierde en países en desarrollo (FAO).",
+    stat2Value: "20M ton",
+    stat2Label: "de alimentos desperdiciados al año solo en México y Centroamérica.",
+    stat3Value: "USD 38 mil M",
+    stat3Label: "en costo económico anual de las pérdidas en toda LATAM.",
+    stat4Value: "USD 8,500M",
+    stat4Label: "TAM regional gestionable digitalmente.",
+    sources: "Fuentes: FAO (2023), SADER México (2024), Banco Mundial (2024).",
+  },
+  features: {
+    kicker: "La solución",
+    title: "Una plataforma integral para gestionar el ciclo de vida del perecedero.",
+    lead: "AgroPulse combina hardware, software y un marketplace para que el productor venda más, pierda menos y comparta los datos correctos con sus compradores.",
+    f1Title: "IoT en tiempo real",
+    f1Desc: "Sensores LoRaWAN miden temperatura, humedad y vida útil cada minuto en bodegas, cámaras frigoríficas y transporte.",
+    f1Pill: "Hardware incluido",
+    f2Title: "Pronóstico ML",
+    f2Desc: "Modelos XGBoost y Prophet pronostican demanda por región, temporada y tipo de producto con +85% de precisión.",
+    f2Pill: "Sin código",
+    f3Title: "Marketplace B2B",
+    f3Desc: "Matching automático oferta-demanda priorizando productos con menor vida útil restante para evitar mermas.",
+    f3Pill: "Comisión 4%",
+    f4Title: "Trazabilidad QR",
+    f4Desc: "Cada lote recibe un código QR público con la historia completa: siembra, cosecha, transporte y punto de venta.",
+    f4Pill: "Blockchain ligera",
+    f5Title: "Alertas tempranas",
+    f5Desc: "Notificaciones instantáneas si la temperatura, humedad o vida útil salen de rango. Antes de que sea pérdida.",
+    f5Pill: "Multicanal",
+    f6Title: "Logística integrada",
+    f6Desc: "Red de transportistas aliados con cadena de frío certificada. Ruteo optimizado y telemetría continua.",
+    f6Pill: "Aliados regionales",
+  },
+  howItWorks: {
+    kicker: "Cómo funciona",
+    title: "Tres pasos para transformar tu operación post-cosecha.",
+    s1Title: "Conecta tus bodegas",
+    s1Desc: "Instalamos los sensores LoRaWAN y los emparejamos con tu plataforma en menos de 48 horas. Sin obras ni costos ocultos.",
+    s2Title: "Monitorea y publica",
+    s2Desc: "Tus datos IoT alimentan el dashboard en vivo. Publica tus lotes en el marketplace con un par de clics.",
+    s3Title: "Vende y reduce mermas",
+    s3Desc: "Los compradores reciben matching automático. Los datos de trazabilidad acompañan al producto hasta su destino.",
+  },
+  cta: {
+    title: "¿Listo para reducir tus pérdidas post-cosecha?",
+    subtitle:
+      "Agenda una demo personalizada de 30 minutos. Te mostramos cómo AgroPulse se adapta a tu operación específica.",
+    primary: "Agendar demo",
+    secondary: "Ver planes",
+  },
+};
+
+/** Todas las locales deben cubrir exactamente las claves de ES. */
+export type Dictionary = {
+  [S in keyof typeof es]: Record<keyof (typeof es)[S], string>;
+};
+export type Section = keyof Dictionary;
+
+const en: Dictionary = {
+  navbar: {
+    inicio: "Home",
+    marketplace: "Marketplace",
+    paises: "Countries",
+    productores: "Producers",
+    planes: "Plans",
+    nosotros: "About us",
+    contacto: "Contact",
+    carrito: "Cart",
+    abrirMenu: "Open menu",
+    cerrarMenu: "Close menu",
+    iniciarSesion: "Log in",
+    comenzarGratis: "Start for free",
+    miCuenta: "My account",
+    miPerfil: "My profile",
+    misPedidos: "My orders",
+    misLotes: "My lots",
+    misEnvios: "My shipments",
+    panelAdmin: "Admin panel",
+    cerrarSesion: "Log out",
+    idioma: "Language",
+    cambiarIdioma: "Change language",
+    seleccionaIdioma: "Select your language",
+  },
+  footer: {
+    tagline:
+      "The smart pulse of your harvest. Costa Rican AgriTech that reduces post-harvest losses with IoT, ML and a B2B marketplace.",
+    madeIn: "Made in Costa Rica · Pura Vida AgriTech",
+    colProducto: "Product",
+    colLatam: "LATAM",
+    colEmpresa: "Company",
+    colLegal: "Legal",
+    linkMarketplaceB2b: "B2B Marketplace",
+    linkDashboard: "Dashboard",
+    linkIot: "Real-time IoT",
+    linkPlanes: "Plans & pricing",
+    linkPaises: "Countries we operate in",
+    linkProductores: "Producers",
+    linkSustentabilidad: "Sustainability",
+    linkCarrito: "Cart",
+    linkNosotros: "About us",
+    linkBlog: "Blog",
+    linkContacto: "Contact",
+    linkCasos: "Success stories",
+    linkTerminos: "Terms of service",
+    linkPrivacidad: "Privacy policy",
+    linkCookies: "Cookie notice",
+    linkDpo: "DPO contact",
+    ariaWhatsapp: "AgroPulse WhatsApp",
+    ariaEmail: "Email",
+    ariaLinkedin: "LinkedIn",
+    ariaSitio: "Website",
+    copyright:
+      "© {year} AgroPulse Technologies S.A. · Made in San José, Costa Rica 🇨🇷 · Operating in 10 LATAM countries.",
+    ods: "SDG 2 · SDG 12 · SDG 13 — Committed to sustainability.",
+  },
+  hero: {
+    badge: "Made in Costa Rica · Pura Vida AgriTech",
+    title1: "The ",
+    titleHighlight: "smart pulse",
+    title2: "of your harvest.",
+    meta: "HQ in San José · 10 LATAM countries · since 2024",
+    sub1: "AgroPulse is a Costa Rican AgriTech that cuts ",
+    subStrong: "post-harvest losses by up to 40%",
+    sub2: " in perishable products through IoT sensors, predictive analytics and a B2B marketplace. We connect producers and buyers directly across Costa Rica and all of Latin America.",
+    ctaPrimary: "Try 30 days free",
+    ctaSecondary: "Browse marketplace",
+    trustProducers: "+64,000 producers across LATAM",
+    trustGmvValue: "USD 80M",
+    trustGmvLabel: "projected GMV by year 3",
+    mockMermas: "Shrinkage",
+    mockVentas: "Monthly sales",
+    mockTemp: "Cold room C01 temperature (24h)",
+    mockEnRango: "In range",
+    mockLote: "Lot L-2026-0211 with 3 days of shelf life",
+    mockPriorizar: "Prioritize sale on the marketplace",
+  },
+  stats: {
+    kicker: "🇨🇷 HQ San José, Costa Rica · 10 LATAM countries",
+    title1: "One single platform, ",
+    titleHighlight: "all of Latin America.",
+    lead: "AgroPulse was born in Costa Rica and operates with local prices and data in {paises} countries, connecting more than {productores} producers with B2B buyers across the continent.",
+    counterPaises: "LATAM countries active on the platform.",
+    counterProductores: "Producers connected with real-time data.",
+    counterHectareas: "Hectares monitored across LATAM.",
+    monedasSuffix: "currencies",
+    counterMonedas: "Prices in local currency: MXN, COP, ARS, BRL, USD and more.",
+    problemKicker: "The problem",
+    problemTitle1: "Every year, millions of tons of food are lost",
+    problemTitle2: " between the harvest and the consumer's table.",
+    stat1Value: "30-40%",
+    stat1Label: "of agricultural production is lost in developing countries (FAO).",
+    stat2Value: "20M tons",
+    stat2Label: "of food wasted per year in Mexico and Central America alone.",
+    stat3Value: "USD 38B",
+    stat3Label: "in annual economic cost of losses across LATAM.",
+    stat4Value: "USD 8.5B",
+    stat4Label: "regional TAM manageable digitally.",
+    sources: "Sources: FAO (2023), SADER Mexico (2024), World Bank (2024).",
+  },
+  features: {
+    kicker: "The solution",
+    title: "An end-to-end platform to manage the perishable life cycle.",
+    lead: "AgroPulse combines hardware, software and a marketplace so producers sell more, lose less and share the right data with their buyers.",
+    f1Title: "Real-time IoT",
+    f1Desc: "LoRaWAN sensors measure temperature, humidity and shelf life every minute across warehouses, cold rooms and transport.",
+    f1Pill: "Hardware included",
+    f2Title: "ML forecasting",
+    f2Desc: "XGBoost and Prophet models forecast demand by region, season and product type with 85%+ accuracy.",
+    f2Pill: "No code",
+    f3Title: "B2B Marketplace",
+    f3Desc: "Automatic supply-demand matching that prioritizes products with the least remaining shelf life to avoid waste.",
+    f3Pill: "4% commission",
+    f4Title: "QR traceability",
+    f4Desc: "Every lot gets a public QR code with its full story: planting, harvest, transport and point of sale.",
+    f4Pill: "Light blockchain",
+    f5Title: "Early alerts",
+    f5Desc: "Instant notifications when temperature, humidity or shelf life go out of range. Before it becomes a loss.",
+    f5Pill: "Multi-channel",
+    f6Title: "Integrated logistics",
+    f6Desc: "Network of partner carriers with a certified cold chain. Optimized routing and continuous telemetry.",
+    f6Pill: "Regional partners",
+  },
+  howItWorks: {
+    kicker: "How it works",
+    title: "Three steps to transform your post-harvest operation.",
+    s1Title: "Connect your warehouses",
+    s1Desc: "We install the LoRaWAN sensors and pair them with your platform in under 48 hours. No construction work, no hidden costs.",
+    s2Title: "Monitor and publish",
+    s2Desc: "Your IoT data feeds the live dashboard. Publish your lots on the marketplace in a couple of clicks.",
+    s3Title: "Sell and cut losses",
+    s3Desc: "Buyers get automatic matching. Traceability data travels with the product all the way to its destination.",
+  },
+  cta: {
+    title: "Ready to reduce your post-harvest losses?",
+    subtitle:
+      "Book a personalized 30-minute demo. We'll show you how AgroPulse adapts to your specific operation.",
+    primary: "Book a demo",
+    secondary: "See plans",
+  },
+};
+
+const pt: Dictionary = {
+  navbar: {
+    inicio: "Início",
+    marketplace: "Marketplace",
+    paises: "Países",
+    productores: "Produtores",
+    planes: "Planos",
+    nosotros: "Sobre nós",
+    contacto: "Contato",
+    carrito: "Carrinho",
+    abrirMenu: "Abrir menu",
+    cerrarMenu: "Fechar menu",
+    iniciarSesion: "Entrar",
+    comenzarGratis: "Começar grátis",
+    miCuenta: "Minha conta",
+    miPerfil: "Meu perfil",
+    misPedidos: "Meus pedidos",
+    misLotes: "Meus lotes",
+    misEnvios: "Meus envios",
+    panelAdmin: "Painel admin",
+    cerrarSesion: "Sair",
+    idioma: "Idioma",
+    cambiarIdioma: "Alterar idioma",
+    seleccionaIdioma: "Selecione seu idioma",
+  },
+  footer: {
+    tagline:
+      "O pulso inteligente da sua colheita. AgriTech costarriquenha que reduz as perdas pós-colheita com IoT, ML e um marketplace B2B.",
+    madeIn: "Feito na Costa Rica · Pura Vida AgriTech",
+    colProducto: "Produto",
+    colLatam: "LATAM",
+    colEmpresa: "Empresa",
+    colLegal: "Legal",
+    linkMarketplaceB2b: "Marketplace B2B",
+    linkDashboard: "Dashboard",
+    linkIot: "IoT em tempo real",
+    linkPlanes: "Planos e preços",
+    linkPaises: "Países onde operamos",
+    linkProductores: "Produtores",
+    linkSustentabilidad: "Sustentabilidade",
+    linkCarrito: "Carrinho",
+    linkNosotros: "Sobre nós",
+    linkBlog: "Blog",
+    linkContacto: "Contato",
+    linkCasos: "Casos de sucesso",
+    linkTerminos: "Termos de serviço",
+    linkPrivacidad: "Política de privacidade",
+    linkCookies: "Aviso de cookies",
+    linkDpo: "Contato DPO",
+    ariaWhatsapp: "WhatsApp AgroPulse",
+    ariaEmail: "E-mail",
+    ariaLinkedin: "LinkedIn",
+    ariaSitio: "Site",
+    copyright:
+      "© {year} AgroPulse Technologies S.A. · Feito em San José, Costa Rica 🇨🇷 · Operamos em 10 países da América Latina.",
+    ods: "ODS 2 · ODS 12 · ODS 13 — Comprometidos com a sustentabilidade.",
+  },
+  hero: {
+    badge: "Feito na Costa Rica · Pura Vida AgriTech",
+    title1: "O pulso ",
+    titleHighlight: "inteligente",
+    title2: "da sua colheita.",
+    meta: "Sede em San José · 10 países LATAM · desde 2024",
+    sub1: "A AgroPulse é uma AgriTech costarriquenha que reduz em até ",
+    subStrong: "40% as perdas pós-colheita",
+    sub2: " de produtos perecíveis com sensores IoT, análise preditiva e um marketplace B2B. Conectamos diretamente produtores e compradores na Costa Rica e em toda a América Latina.",
+    ctaPrimary: "Testar 30 dias grátis",
+    ctaSecondary: "Ver marketplace",
+    trustProducers: "+64.000 produtores na LATAM",
+    trustGmvValue: "USD 80M",
+    trustGmvLabel: "GMV projetado no ano 3",
+    mockMermas: "Perdas",
+    mockVentas: "Vendas do mês",
+    mockTemp: "Temperatura da câmara C01 (24h)",
+    mockEnRango: "Dentro da faixa",
+    mockLote: "Lote L-2026-0211 com 3 dias de vida útil",
+    mockPriorizar: "Priorizar venda no marketplace",
+  },
+  stats: {
+    kicker: "🇨🇷 Sede San José, Costa Rica · 10 países LATAM",
+    title1: "Uma única plataforma, ",
+    titleHighlight: "toda a América Latina.",
+    lead: "A AgroPulse nasceu na Costa Rica e opera com preços e dados locais em {paises} países, conectando mais de {productores} produtores a compradores B2B em todo o continente.",
+    counterPaises: "Países da LATAM ativos na plataforma.",
+    counterProductores: "Produtores conectados com dados em tempo real.",
+    counterHectareas: "Hectares monitorados na LATAM.",
+    monedasSuffix: "moedas",
+    counterMonedas: "Preços em moeda local: MXN, COP, ARS, BRL, USD e mais.",
+    problemKicker: "O problema",
+    problemTitle1: "Todos os anos, milhões de toneladas de alimentos se perdem",
+    problemTitle2: " entre a colheita e a mesa do consumidor.",
+    stat1Value: "30-40%",
+    stat1Label: "da produção agrícola se perde em países em desenvolvimento (FAO).",
+    stat2Value: "20 mi ton",
+    stat2Label: "de alimentos desperdiçados por ano só no México e na América Central.",
+    stat3Value: "US$ 38 bi",
+    stat3Label: "em custo econômico anual das perdas em toda a LATAM.",
+    stat4Value: "US$ 8,5 bi",
+    stat4Label: "TAM regional gerenciável digitalmente.",
+    sources: "Fontes: FAO (2023), SADER México (2024), Banco Mundial (2024).",
+  },
+  features: {
+    kicker: "A solução",
+    title: "Uma plataforma completa para gerenciar o ciclo de vida do perecível.",
+    lead: "A AgroPulse combina hardware, software e um marketplace para que o produtor venda mais, perca menos e compartilhe os dados certos com seus compradores.",
+    f1Title: "IoT em tempo real",
+    f1Desc: "Sensores LoRaWAN medem temperatura, umidade e vida útil a cada minuto em armazéns, câmaras frias e transporte.",
+    f1Pill: "Hardware incluído",
+    f2Title: "Previsão com ML",
+    f2Desc: "Modelos XGBoost e Prophet preveem a demanda por região, estação e tipo de produto com mais de 85% de precisão.",
+    f2Pill: "Sem código",
+    f3Title: "Marketplace B2B",
+    f3Desc: "Matching automático entre oferta e demanda, priorizando produtos com menor vida útil restante para evitar perdas.",
+    f3Pill: "Comissão de 4%",
+    f4Title: "Rastreabilidade QR",
+    f4Desc: "Cada lote recebe um código QR público com a história completa: plantio, colheita, transporte e ponto de venda.",
+    f4Pill: "Blockchain leve",
+    f5Title: "Alertas antecipados",
+    f5Desc: "Notificações instantâneas se a temperatura, a umidade ou a vida útil saírem da faixa. Antes que vire perda.",
+    f5Pill: "Multicanal",
+    f6Title: "Logística integrada",
+    f6Desc: "Rede de transportadoras parceiras com cadeia de frio certificada. Roteirização otimizada e telemetria contínua.",
+    f6Pill: "Parceiros regionais",
+  },
+  howItWorks: {
+    kicker: "Como funciona",
+    title: "Três passos para transformar sua operação pós-colheita.",
+    s1Title: "Conecte seus armazéns",
+    s1Desc: "Instalamos os sensores LoRaWAN e os pareamos com sua plataforma em menos de 48 horas. Sem obras nem custos ocultos.",
+    s2Title: "Monitore e publique",
+    s2Desc: "Seus dados IoT alimentam o dashboard ao vivo. Publique seus lotes no marketplace com alguns cliques.",
+    s3Title: "Venda e reduza perdas",
+    s3Desc: "Os compradores recebem matching automático. Os dados de rastreabilidade acompanham o produto até o destino.",
+  },
+  cta: {
+    title: "Pronto para reduzir suas perdas pós-colheita?",
+    subtitle:
+      "Agende uma demo personalizada de 30 minutos. Mostramos como a AgroPulse se adapta à sua operação específica.",
+    primary: "Agendar demo",
+    secondary: "Ver planos",
+  },
+};
+
+export const dictionaries: Record<Locale, Dictionary> = { es, en, pt };
+
+/**
+ * Traduce `seccion.clave` al locale dado, con fallback a ES si la clave
+ * no existe en el diccionario del locale (y a la propia clave como último
+ * recurso, para no romper el render).
+ */
+export function translate<S extends Section>(
+  locale: Locale,
+  seccion: S,
+  clave: keyof Dictionary[S] & string,
+): string {
+  const dict = dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
+  const section = dict[seccion] as Record<string, string> | undefined;
+  const fallbackSection = dictionaries[DEFAULT_LOCALE][seccion] as Record<
+    string,
+    string
+  >;
+  return section?.[clave] ?? fallbackSection?.[clave] ?? clave;
+}

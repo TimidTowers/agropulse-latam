@@ -1,3 +1,8 @@
+"use client";
+
+// Convertido a client component para soportar i18n (useT). Solo consume
+// datos puros de lib/countries y componentes ya client (Reveal, Counter).
+
 import { Container } from "@/components/ui/Container";
 import {
   TrendingDown,
@@ -12,35 +17,25 @@ import {
 import { Reveal } from "@/components/ui/Reveal";
 import { Counter } from "@/components/ui/Counter";
 import { COUNTRIES, totalHectareas, totalProductors } from "@/lib/countries";
-
-const problemStats = [
-  {
-    icon: AlertOctagon,
-    valor: "30-40%",
-    etiqueta:
-      "de la producción agrícola se pierde en países en desarrollo (FAO).",
-  },
-  {
-    icon: TrendingDown,
-    valor: "20M ton",
-    etiqueta:
-      "de alimentos desperdiciados al año solo en México y Centroamérica.",
-  },
-  {
-    icon: DollarSign,
-    valor: "USD 38 mil M",
-    etiqueta: "en costo económico anual de las pérdidas en toda LATAM.",
-  },
-  {
-    icon: Globe,
-    valor: "USD 8,500M",
-    etiqueta: "TAM regional gestionable digitalmente.",
-  },
-];
+import { LOCALE_TAGS } from "@/lib/i18n/dictionaries";
+import { useLocale, useT } from "@/lib/i18n/store";
 
 export function Stats() {
+  const t = useT();
+  const { locale } = useLocale();
   const productors = totalProductors();
   const hectareas = totalHectareas();
+
+  const problemStats = [
+    { icon: AlertOctagon, valor: t("stats", "stat1Value"), etiqueta: t("stats", "stat1Label") },
+    { icon: TrendingDown, valor: t("stats", "stat2Value"), etiqueta: t("stats", "stat2Label") },
+    { icon: DollarSign, valor: t("stats", "stat3Value"), etiqueta: t("stats", "stat3Label") },
+    { icon: Globe, valor: t("stats", "stat4Value"), etiqueta: t("stats", "stat4Label") },
+  ];
+
+  const lead = t("stats", "lead")
+    .replace("{paises}", String(COUNTRIES.length))
+    .replace("{productores}", productors.toLocaleString(LOCALE_TAGS[locale]));
 
   return (
     <section className="relative border-y border-border-soft bg-surface-2/40">
@@ -48,18 +43,15 @@ export function Stats() {
         <Reveal>
           <div className="max-w-3xl mb-12">
             <p className="text-xs font-semibold tracking-widest uppercase text-brand mb-3">
-              🇨🇷 Sede San José, Costa Rica · 10 países LATAM
+              {t("stats", "kicker")}
             </p>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
-              Una sola plataforma,{" "}
-              <span className="text-brand-gradient">toda Latinoamérica.</span>
+              {t("stats", "title1")}
+              <span className="text-brand-gradient">
+                {t("stats", "titleHighlight")}
+              </span>
             </h2>
-            <p className="mt-4 text-muted text-lg leading-relaxed">
-              AgroPulse nació en Costa Rica y opera con precios y datos locales
-              en {COUNTRIES.length} países, conectando a más de{" "}
-              {productors.toLocaleString("es-CR")} productores con compradores
-              B2B en todo el continente.
-            </p>
+            <p className="mt-4 text-muted text-lg leading-relaxed">{lead}</p>
           </div>
         </Reveal>
 
@@ -74,7 +66,7 @@ export function Stats() {
                 <Counter value={COUNTRIES.length} />
               </p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Países LATAM activos en la plataforma.
+                {t("stats", "counterPaises")}
               </p>
             </div>
             <div className="rounded-2xl bg-surface border border-border-soft p-6 shadow-sm">
@@ -85,7 +77,7 @@ export function Stats() {
                 <Counter value={productors} />
               </p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Productores conectados con datos en tiempo real.
+                {t("stats", "counterProductores")}
               </p>
             </div>
             <div className="rounded-2xl bg-surface border border-border-soft p-6 shadow-sm">
@@ -96,7 +88,7 @@ export function Stats() {
                 <Counter value={hectareas} /> ha
               </p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Hectáreas bajo monitoreo en LATAM.
+                {t("stats", "counterHectareas")}
               </p>
             </div>
             <div className="rounded-2xl bg-surface border border-border-soft p-6 shadow-sm">
@@ -104,10 +96,10 @@ export function Stats() {
                 <Languages size={20} />
               </div>
               <p className="mt-5 text-3xl font-semibold tracking-tight text-ink">
-                <Counter value={10} /> monedas
+                <Counter value={10} /> {t("stats", "monedasSuffix")}
               </p>
               <p className="mt-2 text-sm text-muted leading-relaxed">
-                Precios en moneda local: MXN, COP, ARS, BRL, USD y más.
+                {t("stats", "counterMonedas")}
               </p>
             </div>
           </div>
@@ -117,14 +109,11 @@ export function Stats() {
         <Reveal>
           <div className="max-w-3xl mb-10">
             <p className="text-xs font-semibold tracking-widest uppercase text-warm mb-3">
-              El problema
+              {t("stats", "problemKicker")}
             </p>
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
-              Cada año se pierden millones de toneladas de alimentos
-              <span className="text-muted">
-                {" "}
-                entre la cosecha y la mesa del consumidor.
-              </span>
+              {t("stats", "problemTitle1")}
+              <span className="text-muted">{t("stats", "problemTitle2")}</span>
             </h2>
           </div>
         </Reveal>
@@ -150,9 +139,7 @@ export function Stats() {
           })}
         </div>
 
-        <p className="mt-6 text-xs text-muted">
-          Fuentes: FAO (2023), SADER México (2024), Banco Mundial (2024).
-        </p>
+        <p className="mt-6 text-xs text-muted">{t("stats", "sources")}</p>
       </Container>
     </section>
   );

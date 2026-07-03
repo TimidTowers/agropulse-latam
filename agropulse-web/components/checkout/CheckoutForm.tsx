@@ -40,6 +40,16 @@ interface CheckoutFormProps {
   paymentMethods: PaymentMethod[];
 }
 
+/**
+ * Opción sintética de pago "Tarjeta internacional (Stripe)" — modo TEST.
+ * No existe en paymentMethodsDb: al confirmar, el pedido se crea vía
+ * POST /api/orders con el método local de tarjeta subyacente
+ * (card-international) y luego se redirige al checkout de Stripe
+ * (POST /api/stripe/checkout). La confirmación del pago llega por redirect
+ * (/api/stripe/confirm) y actualiza paymentStatus a "pagado".
+ */
+const STRIPE_OPTION_ID = "stripe-card-test";
+
 const SHIPPING_METHODS = [
   {
     id: "cold-chain",
@@ -107,6 +117,34 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
   const [paymentMethodId, setPaymentMethodId] = useState<string>(
     paymentMethods[0]?.id ?? "",
   );
+
+  // ¿Stripe (test) habilitado en el server? null = consultando.
+  const [stripeEnabled, setStripeEnabled] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/stripe/status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setStripeEnabled(Boolean(d?.enabled));
+      })
+      .catch(() => {
+        if (!cancelled) setStripeEnabled(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Método local de tarjeta que respalda la opción Stripe en POST /api/orders.
+  const stripeBackingPm =
+    paymentMethods.find((p) => p.id === "card-international") ??
+    paymentMethods.find((p) => p.type === "card");
+  const stripeSelected = paymentMethodId === STRIPE_OPTION_ID;
+  const stripeSelectable = stripeEnabled === true && !!stripeBackingPm;
+  // Id real que se envía a POST /api/orders (Stripe usa la tarjeta subyacente).
+  const effectivePaymentMethodId = stripeSelected
+    ? (stripeBackingPm?.id ?? "")
+    : paymentMethodId;
   const [notes, setNotes] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -164,7 +202,9 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
   const discountedSubtotal = Math.max(0, subtotal - discountTotal);
   const commissionFee = Math.round(discountedSubtotal * 0.04);
 
-  const selectedPm = paymentMethods.find((p) => p.id === paymentMethodId);
+  const selectedPm = paymentMethods.find(
+    (p) => p.id === effectivePaymentMethodId,
+  );
   const paymentFee = selectedPm?.feePct
     ? Math.round((discountedSubtotal * selectedPm.feePct) / 100)
     : 0;
@@ -174,7 +214,8 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
   const allReady =
     !blocked &&
     acceptTerms &&
-    !!paymentMethodId &&
+    !!effectivePaymentMethodId &&
+    (!stripeSelected || stripeSelectable) &&
     !!shippingId;
 
   async function handleConfirm() {
@@ -201,7 +242,7 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
         // server lo ajusta a 0 con computeDiscounts (cálculo autoritativo).
         shippingFee: baseShippingFee,
         shippingMethod: shipping.name,
-        paymentMethodId,
+        paymentMethodId: effectivePaymentMethodId,
         customerInfo: {
           name: user.name,
           email: user.email,
@@ -223,6 +264,29 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
       const data = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error(data.message ?? data.error ?? "Error al crear el pedido");
+      }
+
+      // Pago con Stripe (test): el pedido ya existe (paymentStatus pendiente);
+      // se crea la Checkout Session y se redirige a la página de pago de
+      // Stripe. Al volver, /api/stripe/confirm marca el pedido como pagado.
+      if (stripeSelected) {
+        try {
+          const sres = await fetch("/api/stripe/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: data.order.id }),
+          });
+          const sdata = await sres.json();
+          if (sres.ok && sdata.ok && sdata.url) {
+            clear();
+            window.location.assign(sdata.url);
+            return;
+          }
+        } catch {
+          // cae al flujo estándar: el pedido quedó creado con pago pendiente
+        }
+        // No se pudo iniciar el pago — el pedido existe igualmente; se lleva
+        // al usuario a su seguimiento (podrá ver paymentStatus pendiente).
       }
 
       setConfirmedOrderId(data.order.id);
@@ -470,6 +534,56 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
                     </label>
                   );
                 })}
+
+                {/* Tarjeta internacional (Stripe) — modo TEST */}
+                {stripeBackingPm && (
+                  <label
+                    title={
+                      stripeSelectable
+                        ? undefined
+                        : "Configura STRIPE_SECRET_KEY para activar"
+                    }
+                    className={`flex items-start gap-3 rounded-xl border p-3 transition-all ${
+                      stripeSelected
+                        ? "border-brand bg-brand/5 ring-2 ring-brand/20 cursor-pointer"
+                        : stripeSelectable
+                          ? "border-border-soft hover:bg-surface-2 cursor-pointer"
+                          : "border-border-soft opacity-50 cursor-not-allowed"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={STRIPE_OPTION_ID}
+                      checked={stripeSelected}
+                      disabled={!stripeSelectable}
+                      onChange={() => setPaymentMethodId(STRIPE_OPTION_ID)}
+                      className="accent-brand mt-0.5"
+                    />
+                    <CreditCard
+                      size={20}
+                      className="flex-shrink-0 text-brand mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink flex items-center gap-1.5">
+                        Tarjeta internacional (Stripe)
+                        <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 tracking-wider">
+                          TEST
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        {stripeSelectable
+                          ? "Paga con tarjeta en la pasarela segura de Stripe (modo prueba, tarjeta 4242 4242 4242 4242)."
+                          : "Configura STRIPE_SECRET_KEY para activar"}
+                      </p>
+                      {stripeBackingPm.feePct ? (
+                        <p className="text-[10px] text-muted mt-1">
+                          +{stripeBackingPm.feePct}% comisión
+                        </p>
+                      ) : null}
+                    </div>
+                  </label>
+                )}
               </div>
             )}
           </section>
@@ -600,7 +714,10 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
             </li>
             {paymentFee > 0 && (
               <li className="flex items-center justify-between">
-                <span className="text-muted">Comisión {selectedPm?.name}</span>
+                <span className="text-muted">
+                  Comisión{" "}
+                  {stripeSelected ? "Tarjeta internacional (Stripe)" : selectedPm?.name}
+                </span>
                 <span className="text-ink tabular-nums">
                   {formatPriceByCode(paymentFee, user.country)}
                 </span>
@@ -642,7 +759,7 @@ export function CheckoutForm({ user, paymentMethods }: CheckoutFormProps) {
               </>
             ) : (
               <>
-                Confirmar pedido
+                {stripeSelected ? "Confirmar y pagar con tarjeta" : "Confirmar pedido"}
                 <ArrowRight size={16} />
               </>
             )}

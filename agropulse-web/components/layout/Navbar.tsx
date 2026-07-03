@@ -19,23 +19,26 @@ import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { CountrySwitcher } from "@/components/country/CountrySwitcher";
+import { LanguageSwitcher } from "@/lib/i18n/LanguageSwitcher";
+import { useT } from "@/lib/i18n/store";
 import { useCartStore } from "@/lib/stores/cart-store";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/", label: "Inicio" },
-  { href: "/marketplace", label: "Marketplace" },
-  { href: "/paises", label: "Países" },
-  { href: "/productores", label: "Productores" },
-  { href: "/planes", label: "Planes" },
-  { href: "/nosotros", label: "Nosotros" },
-];
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const itemsCount = useCartStore((s) => s.items.length);
   const { data: session, status } = useSession();
   const authed = status === "authenticated" && !!session?.user;
+  const t = useT();
+
+  const navLinks = [
+    { href: "/", label: t("navbar", "inicio") },
+    { href: "/marketplace", label: t("navbar", "marketplace") },
+    { href: "/paises", label: t("navbar", "paises") },
+    { href: "/productores", label: t("navbar", "productores") },
+    { href: "/planes", label: t("navbar", "planes") },
+    { href: "/nosotros", label: t("navbar", "nosotros") },
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-soft/80 bg-surface/85 backdrop-blur-md">
@@ -62,9 +65,10 @@ export function Navbar() {
 
           <div className="hidden lg:flex items-center gap-2">
             <CountrySwitcher />
+            <LanguageSwitcher />
             <Link
               href="/carrito"
-              aria-label="Carrito"
+              aria-label={t("navbar", "carrito")}
               className="relative grid h-9 w-9 place-items-center rounded-lg border border-border-soft hover:bg-surface-2"
             >
               <ShoppingCart size={16} />
@@ -76,7 +80,7 @@ export function Navbar() {
             </Link>
             {authed ? (
               <UserMenu
-                name={session.user.name ?? "Mi cuenta"}
+                name={session.user.name ?? t("navbar", "miCuenta")}
                 email={session.user.email ?? ""}
                 role={session.user.role}
               />
@@ -86,10 +90,10 @@ export function Navbar() {
                   href="/login"
                   className="text-sm font-medium text-muted hover:text-ink px-3 py-2"
                 >
-                  Iniciar sesión
+                  {t("navbar", "iniciarSesion")}
                 </Link>
                 <Link href="/signup">
-                  <Button size="md">Comenzar gratis</Button>
+                  <Button size="md">{t("navbar", "comenzarGratis")}</Button>
                 </Link>
               </>
             )}
@@ -97,9 +101,10 @@ export function Navbar() {
 
           <div className="lg:hidden flex items-center gap-2">
             <CountrySwitcher compact />
+            <LanguageSwitcher compact />
             <Link
               href="/carrito"
-              aria-label="Carrito"
+              aria-label={t("navbar", "carrito")}
               className="relative grid h-9 w-9 place-items-center rounded-lg border border-border-soft"
             >
               <ShoppingCart size={16} />
@@ -111,7 +116,7 @@ export function Navbar() {
             </Link>
             <button
               type="button"
-              aria-label={open ? "Cerrar menú" : "Abrir menú"}
+              aria-label={open ? t("navbar", "cerrarMenu") : t("navbar", "abrirMenu")}
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
               className="p-2 rounded-lg hover:bg-surface-2"
@@ -141,7 +146,7 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                   className="block px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-2 rounded-lg"
                 >
-                  Contacto
+                  {t("navbar", "contacto")}
                 </Link>
               </li>
               {authed ? (
@@ -152,7 +157,7 @@ export function Navbar() {
                       onClick={() => setOpen(false)}
                       className="block px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-2 rounded-lg"
                     >
-                      Mi perfil
+                      {t("navbar", "miPerfil")}
                     </Link>
                   </li>
                   <li className="pt-1">
@@ -160,7 +165,7 @@ export function Navbar() {
                       onClick={() => signOut({ callbackUrl: "/" })}
                       className="w-full text-left px-3 py-2.5 text-sm font-medium text-danger hover:bg-surface-2 rounded-lg"
                     >
-                      Cerrar sesión
+                      {t("navbar", "cerrarSesion")}
                     </button>
                   </li>
                 </>
@@ -172,13 +177,13 @@ export function Navbar() {
                       onClick={() => setOpen(false)}
                       className="block px-3 py-2.5 text-sm font-medium text-muted hover:bg-surface-2 rounded-lg"
                     >
-                      Iniciar sesión
+                      {t("navbar", "iniciarSesion")}
                     </Link>
                   </li>
                   <li className="pt-1">
                     <Link href="/signup" onClick={() => setOpen(false)}>
                       <Button className="w-full" size="md">
-                        Comenzar gratis
+                        {t("navbar", "comenzarGratis")}
                       </Button>
                     </Link>
                   </li>
@@ -203,6 +208,7 @@ function UserMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -221,19 +227,19 @@ function UserMenu({
     .toUpperCase();
 
   const links: { href: string; label: string; icon: typeof UserIcon }[] = [
-    { href: "/perfil", label: "Mi perfil", icon: UserIcon },
+    { href: "/perfil", label: t("navbar", "miPerfil"), icon: UserIcon },
   ];
   if (role === "cliente") {
-    links.push({ href: "/pedidos", label: "Mis pedidos", icon: Package });
+    links.push({ href: "/pedidos", label: t("navbar", "misPedidos"), icon: Package });
   }
   if (role === "productor") {
-    links.push({ href: "/dashboard", label: "Mis lotes", icon: Sprout });
+    links.push({ href: "/dashboard", label: t("navbar", "misLotes"), icon: Sprout });
   }
   if (role === "logistica") {
-    links.push({ href: "/dashboard", label: "Mis envíos", icon: Truck });
+    links.push({ href: "/dashboard", label: t("navbar", "misEnvios"), icon: Truck });
   }
   if (role === "admin") {
-    links.push({ href: "/admin", label: "Panel admin", icon: ShieldCheck });
+    links.push({ href: "/admin", label: t("navbar", "panelAdmin"), icon: ShieldCheck });
   }
 
   return (
@@ -292,7 +298,7 @@ function UserMenu({
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5 rounded-lg"
                   role="menuitem"
                 >
-                  <LogOut size={14} /> Cerrar sesión
+                  <LogOut size={14} /> {t("navbar", "cerrarSesion")}
                 </button>
               </li>
             </ul>

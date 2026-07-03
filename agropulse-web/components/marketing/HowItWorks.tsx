@@ -1,27 +1,31 @@
-import { Container } from "@/components/ui/Container";
+"use client";
 
-const steps = [
-  {
-    n: "01",
-    titulo: "Conecta tus bodegas",
-    descripcion:
-      "Instalamos los sensores LoRaWAN y los emparejamos con tu plataforma en menos de 48 horas. Sin obras ni costos ocultos.",
-  },
-  {
-    n: "02",
-    titulo: "Monitorea y publica",
-    descripcion:
-      "Tus datos IoT alimentan el dashboard en vivo. Publica tus lotes en el marketplace con un par de clics.",
-  },
-  {
-    n: "03",
-    titulo: "Vende y reduce mermas",
-    descripcion:
-      "Los compradores reciben matching automático. Los datos de trazabilidad acompañan al producto hasta su destino.",
-  },
-];
+// Convertido a client component para soportar i18n (useT).
+
+import { Container } from "@/components/ui/Container";
+import { useT } from "@/lib/i18n/store";
 
 export function HowItWorks() {
+  const t = useT();
+
+  const steps = [
+    {
+      n: "01",
+      titulo: t("howItWorks", "s1Title"),
+      descripcion: t("howItWorks", "s1Desc"),
+    },
+    {
+      n: "02",
+      titulo: t("howItWorks", "s2Title"),
+      descripcion: t("howItWorks", "s2Desc"),
+    },
+    {
+      n: "03",
+      titulo: t("howItWorks", "s3Title"),
+      descripcion: t("howItWorks", "s3Desc"),
+    },
+  ];
+
   return (
     <section className="border-t border-border-soft bg-ink text-white relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.04]" aria-hidden="true">
@@ -44,10 +48,10 @@ export function HowItWorks() {
       <Container className="relative py-24">
         <div className="max-w-3xl mb-14">
           <p className="text-xs font-semibold tracking-widest uppercase text-accent mb-3">
-            Cómo funciona
+            {t("howItWorks", "kicker")}
           </p>
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight">
-            Tres pasos para transformar tu operación post-cosecha.
+            {t("howItWorks", "title")}
           </h2>
         </div>
 

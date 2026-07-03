@@ -1,9 +1,16 @@
+"use client";
+
+// Convertido a client component para soportar i18n (useT).
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n/store";
 
 export function CTA() {
+  const t = useT();
+
   return (
     <section className="relative">
       <Container className="py-24">
@@ -18,11 +25,10 @@ export function CTA() {
           />
           <div className="relative max-w-3xl">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">
-              ¿Listo para reducir tus pérdidas post-cosecha?
+              {t("cta", "title")}
             </h2>
             <p className="mt-5 text-white/85 text-lg leading-relaxed max-w-2xl">
-              Agenda una demo personalizada de 30 minutos. Te mostramos cómo
-              AgroPulse se adapta a tu operación específica.
+              {t("cta", "subtitle")}
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/contacto">
@@ -30,7 +36,7 @@ export function CTA() {
                   size="xl"
                   className="bg-white text-brand-dark hover:bg-white/90"
                 >
-                  Agendar demo
+                  {t("cta", "primary")}
                   <ArrowRight size={16} />
                 </Button>
               </Link>
@@ -39,7 +45,7 @@ export function CTA() {
                   size="xl"
                   className="bg-white/10 text-white border border-white/30 hover:bg-white/20"
                 >
-                  Ver planes
+                  {t("cta", "secondary")}
                 </Button>
               </Link>
             </div>

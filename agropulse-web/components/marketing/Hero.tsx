@@ -5,8 +5,11 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Leaf } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
+import { useT } from "@/lib/i18n/store";
 
 export function Hero() {
+  const t = useT();
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 bg-grid opacity-60" aria-hidden="true" />
@@ -46,7 +49,7 @@ export function Hero() {
               className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/5 px-3 py-1.5 text-xs font-semibold text-brand shadow-sm"
             >
               <span aria-hidden="true">🇨🇷</span>
-              Hecho en Costa Rica · Pura Vida AgriTech
+              {t("hero", "badge")}
             </motion.div>
 
             <motion.h1
@@ -55,10 +58,12 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-ink leading-[1.05]"
             >
-              El pulso{" "}
-              <span className="text-brand-gradient">inteligente</span>
+              {t("hero", "title1")}
+              <span className="text-brand-gradient">
+                {t("hero", "titleHighlight")}
+              </span>
               <br />
-              de tu cosecha.
+              {t("hero", "title2")}
             </motion.h1>
 
             <motion.div
@@ -68,7 +73,7 @@ export function Hero() {
               className="mt-4 inline-flex items-center gap-2 rounded-full border border-border-soft bg-surface px-3 py-1.5 text-xs font-medium text-muted shadow-sm"
             >
               <Sparkles size={13} className="text-warm" />
-              Sede San José · 10 países LATAM · desde 2024
+              {t("hero", "meta")}
             </motion.div>
 
             <motion.p
@@ -77,11 +82,9 @@ export function Hero() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mt-6 max-w-xl text-lg text-muted leading-relaxed"
             >
-              AgroPulse es una AgriTech costarricense que reduce hasta un{" "}
-              <strong className="text-ink">40% las pérdidas post-cosecha</strong>{" "}
-              en productos perecederos mediante sensores IoT, analítica
-              predictiva y un marketplace B2B. Conectamos directamente a
-              productores y compradores en Costa Rica y toda Latinoamérica.
+              {t("hero", "sub1")}
+              <strong className="text-ink">{t("hero", "subStrong")}</strong>
+              {t("hero", "sub2")}
             </motion.p>
 
             <motion.div
@@ -92,13 +95,13 @@ export function Hero() {
             >
               <Link href="/planes">
                 <Button size="xl">
-                  Probar 30 días gratis
+                  {t("hero", "ctaPrimary")}
                   <ArrowRight size={16} />
                 </Button>
               </Link>
               <Link href="/marketplace">
                 <Button size="xl" variant="outline">
-                  Ver marketplace
+                  {t("hero", "ctaSecondary")}
                 </Button>
               </Link>
             </motion.div>
@@ -111,12 +114,14 @@ export function Hero() {
             >
               <div className="flex items-center gap-2">
                 <Leaf size={16} className="text-brand" />
-                <span>+64,000 productores en LATAM</span>
+                <span>{t("hero", "trustProducers")}</span>
               </div>
               <div className="h-4 w-px bg-border-soft" />
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-ink">USD 80M</span>
-                <span>GMV proyectado año 3</span>
+                <span className="font-semibold text-ink">
+                  {t("hero", "trustGmvValue")}
+                </span>
+                <span>{t("hero", "trustGmvLabel")}</span>
               </div>
             </motion.div>
           </div>
@@ -145,14 +150,14 @@ export function Hero() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-border-soft p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted">
-                      Mermas
+                      {t("hero", "mockMermas")}
                     </p>
                     <p className="mt-1 text-2xl font-semibold text-ink">6.4%</p>
                     <p className="text-xs text-emerald-700 font-medium">-28%</p>
                   </div>
                   <div className="rounded-xl border border-border-soft p-4">
                     <p className="text-[10px] uppercase tracking-wider text-muted">
-                      Ventas mes
+                      {t("hero", "mockVentas")}
                     </p>
                     <p className="mt-1 text-2xl font-semibold text-ink">$412k</p>
                     <p className="text-xs text-emerald-700 font-medium">+14%</p>
@@ -161,11 +166,11 @@ export function Hero() {
                 <div className="rounded-xl border border-border-soft p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium text-ink">
-                      Temperatura cámara C01 (24h)
+                      {t("hero", "mockTemp")}
                     </p>
                     <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      En rango
+                      {t("hero", "mockEnRango")}
                     </span>
                   </div>
                   <svg viewBox="0 0 300 80" className="w-full h-16">
@@ -191,10 +196,10 @@ export function Hero() {
                   <span className="mt-0.5 inline-flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                   <div className="flex-1">
                     <p className="text-xs font-medium text-amber-900">
-                      Lote L-2026-0211 con 3 días de vida útil
+                      {t("hero", "mockLote")}
                     </p>
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Priorizar venta en marketplace
+                      {t("hero", "mockPriorizar")}
                     </p>
                   </div>
                 </div>

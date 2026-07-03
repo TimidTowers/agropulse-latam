@@ -1,49 +1,57 @@
+"use client";
+
+// Convertido a client component para soportar i18n (useT). No usa APIs
+// server-only; el SSR sigue emitiendo ES por el patrón hydration-safe.
+
 import Link from "next/link";
 import { Globe, AtSign, MessageCircle, Mail, Phone, MapPin } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
 import { HEADQUARTERS } from "@/lib/countries";
-
-const cols = [
-  {
-    title: "Producto",
-    links: [
-      { href: "/marketplace", label: "Marketplace B2B" },
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/dashboard/sensores", label: "IoT en tiempo real" },
-      { href: "/planes", label: "Planes y precios" },
-    ],
-  },
-  {
-    title: "LATAM",
-    links: [
-      { href: "/paises", label: "Países donde operamos" },
-      { href: "/productores", label: "Productores" },
-      { href: "/sustentabilidad", label: "Sustentabilidad" },
-      { href: "/carrito", label: "Carrito" },
-    ],
-  },
-  {
-    title: "Empresa",
-    links: [
-      { href: "/nosotros", label: "Nosotros" },
-      { href: "/blog", label: "Blog" },
-      { href: "/contacto", label: "Contacto" },
-      { href: "/casos-de-exito", label: "Casos de éxito" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "/legal/terminos", label: "Términos de servicio" },
-      { href: "/legal/privacidad", label: "Política de privacidad" },
-      { href: "/legal/cookies", label: "Aviso de cookies" },
-      { href: "/legal/contacto-dpo", label: "Contacto DPO" },
-    ],
-  },
-];
+import { useT } from "@/lib/i18n/store";
 
 export function Footer() {
+  const t = useT();
+
+  const cols = [
+    {
+      title: t("footer", "colProducto"),
+      links: [
+        { href: "/marketplace", label: t("footer", "linkMarketplaceB2b") },
+        { href: "/dashboard", label: t("footer", "linkDashboard") },
+        { href: "/dashboard/sensores", label: t("footer", "linkIot") },
+        { href: "/planes", label: t("footer", "linkPlanes") },
+      ],
+    },
+    {
+      title: t("footer", "colLatam"),
+      links: [
+        { href: "/paises", label: t("footer", "linkPaises") },
+        { href: "/productores", label: t("footer", "linkProductores") },
+        { href: "/sustentabilidad", label: t("footer", "linkSustentabilidad") },
+        { href: "/carrito", label: t("footer", "linkCarrito") },
+      ],
+    },
+    {
+      title: t("footer", "colEmpresa"),
+      links: [
+        { href: "/nosotros", label: t("footer", "linkNosotros") },
+        { href: "/blog", label: t("footer", "linkBlog") },
+        { href: "/contacto", label: t("footer", "linkContacto") },
+        { href: "/casos-de-exito", label: t("footer", "linkCasos") },
+      ],
+    },
+    {
+      title: t("footer", "colLegal"),
+      links: [
+        { href: "/legal/terminos", label: t("footer", "linkTerminos") },
+        { href: "/legal/privacidad", label: t("footer", "linkPrivacidad") },
+        { href: "/legal/cookies", label: t("footer", "linkCookies") },
+        { href: "/legal/contacto-dpo", label: t("footer", "linkDpo") },
+      ],
+    },
+  ];
+
   return (
     <footer className="border-t border-border-soft bg-surface mt-24">
       <Container className="py-16">
@@ -53,14 +61,13 @@ export function Footer() {
               <Logo />
             </Link>
             <p className="mt-4 text-sm text-muted max-w-xs leading-relaxed">
-              El pulso inteligente de tu cosecha. AgriTech costarricense que
-              reduce las pérdidas post-cosecha con IoT, ML y un marketplace B2B.
+              {t("footer", "tagline")}
             </p>
 
             <div className="mt-5 space-y-2 text-sm">
               <p className="inline-flex items-center gap-2 font-medium text-ink">
                 <span aria-hidden="true">🇨🇷</span>
-                <span>Hecho en Costa Rica · Pura Vida AgriTech</span>
+                <span>{t("footer", "madeIn")}</span>
               </p>
               <p className="inline-flex items-center gap-2 text-muted">
                 <MapPin size={14} className="text-brand" />
@@ -91,28 +98,28 @@ export function Footer() {
                 href={HEADQUARTERS.whatsapp}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="WhatsApp AgroPulse"
+                aria-label={t("footer", "ariaWhatsapp")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
               >
                 <MessageCircle size={16} />
               </a>
               <a
                 href={`mailto:${HEADQUARTERS.email}`}
-                aria-label="Email"
+                aria-label={t("footer", "ariaEmail")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
               >
                 <Mail size={16} />
               </a>
               <a
                 href="#"
-                aria-label="LinkedIn"
+                aria-label={t("footer", "ariaLinkedin")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
               >
                 <AtSign size={16} />
               </a>
               <a
                 href="#"
-                aria-label="Sitio"
+                aria-label={t("footer", "ariaSitio")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-border-soft text-muted hover:bg-surface-2 hover:text-ink transition-colors"
               >
                 <Globe size={16} />
@@ -143,12 +150,12 @@ export function Footer() {
 
         <div className="mt-12 border-t border-border-soft pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-muted">
-            © {new Date().getFullYear()} AgroPulse Technologies S.A. · Hecho en
-            San José, Costa Rica 🇨🇷 · Operamos en 10 países LATAM.
+            {t("footer", "copyright").replace(
+              "{year}",
+              String(new Date().getFullYear()),
+            )}
           </p>
-          <p className="text-xs text-muted">
-            ODS 2 · ODS 12 · ODS 13 — Comprometidos con la sostenibilidad.
-          </p>
+          <p className="text-xs text-muted">{t("footer", "ods")}</p>
         </div>
       </Container>
     </footer>

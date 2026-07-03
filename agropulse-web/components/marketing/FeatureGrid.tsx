@@ -1,3 +1,7 @@
+"use client";
+
+// Convertido a client component para soportar i18n (useT).
+
 import {
   Radio,
   Brain,
@@ -7,67 +11,62 @@ import {
   Truck,
 } from "lucide-react";
 import { Container } from "@/components/ui/Container";
-
-const features = [
-  {
-    icon: Radio,
-    titulo: "IoT en tiempo real",
-    descripcion:
-      "Sensores LoRaWAN miden temperatura, humedad y vida útil cada minuto en bodegas, cámaras frigoríficas y transporte.",
-    pill: "Hardware incluido",
-  },
-  {
-    icon: Brain,
-    titulo: "Pronóstico ML",
-    descripcion:
-      "Modelos XGBoost y Prophet pronostican demanda por región, temporada y tipo de producto con +85% de precisión.",
-    pill: "Sin código",
-  },
-  {
-    icon: ShoppingBag,
-    titulo: "Marketplace B2B",
-    descripcion:
-      "Matching automático oferta-demanda priorizando productos con menor vida útil restante para evitar mermas.",
-    pill: "Comisión 4%",
-  },
-  {
-    icon: QrCode,
-    titulo: "Trazabilidad QR",
-    descripcion:
-      "Cada lote recibe un código QR público con la historia completa: siembra, cosecha, transporte y punto de venta.",
-    pill: "Blockchain ligera",
-  },
-  {
-    icon: Zap,
-    titulo: "Alertas tempranas",
-    descripcion:
-      "Notificaciones instantáneas si la temperatura, humedad o vida útil salen de rango. Antes de que sea pérdida.",
-    pill: "Multicanal",
-  },
-  {
-    icon: Truck,
-    titulo: "Logística integrada",
-    descripcion:
-      "Red de transportistas aliados con cadena de frío certificada. Ruteo optimizado y telemetría continua.",
-    pill: "Aliados regionales",
-  },
-];
+import { useT } from "@/lib/i18n/store";
 
 export function FeatureGrid() {
+  const t = useT();
+
+  const features = [
+    {
+      icon: Radio,
+      titulo: t("features", "f1Title"),
+      descripcion: t("features", "f1Desc"),
+      pill: t("features", "f1Pill"),
+    },
+    {
+      icon: Brain,
+      titulo: t("features", "f2Title"),
+      descripcion: t("features", "f2Desc"),
+      pill: t("features", "f2Pill"),
+    },
+    {
+      icon: ShoppingBag,
+      titulo: t("features", "f3Title"),
+      descripcion: t("features", "f3Desc"),
+      pill: t("features", "f3Pill"),
+    },
+    {
+      icon: QrCode,
+      titulo: t("features", "f4Title"),
+      descripcion: t("features", "f4Desc"),
+      pill: t("features", "f4Pill"),
+    },
+    {
+      icon: Zap,
+      titulo: t("features", "f5Title"),
+      descripcion: t("features", "f5Desc"),
+      pill: t("features", "f5Pill"),
+    },
+    {
+      icon: Truck,
+      titulo: t("features", "f6Title"),
+      descripcion: t("features", "f6Desc"),
+      pill: t("features", "f6Pill"),
+    },
+  ];
+
   return (
     <section id="solucion" className="relative">
       <Container className="py-24">
         <div className="max-w-3xl mb-14">
           <p className="text-xs font-semibold tracking-widest uppercase text-brand mb-3">
-            La solución
+            {t("features", "kicker")}
           </p>
           <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
-            Una plataforma integral para gestionar el ciclo de vida del perecedero.
+            {t("features", "title")}
           </h2>
           <p className="mt-4 text-muted text-lg leading-relaxed">
-            AgroPulse combina hardware, software y un marketplace para que el
-            productor venda más, pierda menos y comparta los datos correctos con
-            sus compradores.
+            {t("features", "lead")}
           </p>
         </div>
 

@@ -20,6 +20,7 @@ import { alertas as ALL_ALERTAS } from "@/lib/mock-data/kpis";
 import { PreferenceBanner } from "@/components/dashboard/PreferenceBanner";
 import { ProductorSalesChart } from "@/components/dashboard/ProductorSalesChart";
 import { ProductorMermasChart } from "@/components/dashboard/ProductorMermasChart";
+import { ExportButtons } from "@/components/dashboard/ExportButtons";
 
 export const metadata: Metadata = {
   title: "Dashboard — AgroPulse",
@@ -106,9 +107,63 @@ export default async function DashboardPage() {
   const totalPedidos = myOrders.length;
   const isEmpty = myLots.length === 0 && myOrders.length === 0;
 
+  // ── Datos serializados para exportación (Excel/PDF) — mejora #8 ──────────
+  // Todos los montos convertidos a la moneda preferida del productor.
+  const exportKpis = [
+    { indicador: "Ventas (mis pedidos)", valor: formatCurrency(ventasTotal, currency) },
+    { indicador: "Lotes activos", valor: `${activeLots.length} de ${myLots.length}` },
+    { indicador: "Pedidos pendientes", valor: String(pedidosPendientes.length) },
+    { indicador: "Pedidos totales", valor: String(totalPedidos) },
+    { indicador: "Hectáreas", valor: `${user.hectareas ?? 0} ha` },
+  ];
+
+  const exportLots = myLots.map((l) => {
+    const lotCurrency =
+      (l.currency as keyof typeof CURRENCIES) ?? COUNTRY_TO_CURRENCY[l.country];
+    return {
+      id: l.id,
+      producto: l.productName,
+      region: l.region,
+      estado: l.status,
+      stock: l.quantity,
+      unidad: l.unit,
+      precioUnitario: formatCurrency(
+        convertCurrency(l.pricePerUnit, lotCurrency, currency),
+        currency,
+      ),
+      valorEstimado: formatCurrency(
+        convertCurrency(l.quantity * l.pricePerUnit, lotCurrency, currency),
+        currency,
+      ),
+      cosecha: new Date(l.harvestDate).toLocaleDateString(country.locale),
+      expira: new Date(l.expirationDate).toLocaleDateString(country.locale),
+    };
+  });
+
+  const exportOrders = myOrders.map((o) => {
+    const orderCurrency =
+      (o.currency as keyof typeof CURRENCIES) ?? COUNTRY_TO_CURRENCY[o.country];
+    const myItems = o.items.filter((i) => i.productorId === user.id);
+    const myItemsTotal = myItems.reduce((s, i) => s + i.subtotal, 0);
+    return {
+      folio: o.shortCode,
+      fecha: new Date(o.createdAt).toLocaleDateString(country.locale),
+      comprador: o.customerInfo.name,
+      productos: myItems
+        .map((i) => `${i.productName} (${i.quantity} ${i.unit})`)
+        .join("; "),
+      total: formatCurrency(
+        convertCurrency(myItemsTotal, orderCurrency, currency),
+        currency,
+      ),
+      estado: o.status.replace(/_/g, " "),
+      pago: o.paymentStatus,
+    };
+  });
+
   return (
     <main className="bg-background min-h-screen">
-      <header className="h-16 border-b border-border-soft bg-surface flex items-center px-6 sticky top-0 z-30">
+      <header className="h-16 border-b border-border-soft bg-surface flex items-center px-6 sticky top-0 z-30 print:hidden">
         <div className="flex-1 min-w-0 flex items-center gap-3">
           <div>
             <h1 className="text-base font-semibold text-ink">Resumen</h1>
@@ -119,6 +174,14 @@ export default async function DashboardPage() {
           <LiveBadge />
         </div>
         <div className="flex items-center gap-3">
+          <ExportButtons
+            producerName={user.name}
+            producerOrg={`${user.cooperativa ?? "Productor independiente"} · ${country.name}`}
+            currency={currency}
+            kpis={exportKpis}
+            lots={exportLots}
+            orders={exportOrders}
+          />
           <DashboardCountryBadge />
           <Link
             href="/perfil#currency"

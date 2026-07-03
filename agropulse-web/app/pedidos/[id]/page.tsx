@@ -25,6 +25,7 @@ import { ensureProgress } from "@/lib/orders/progression-server";
 import { OrderStatusStream } from "@/components/realtime/OrderStatusStream";
 import { OrderActions } from "@/components/pedidos/OrderActions";
 import { OrderRouteMap } from "@/components/pedidos/OrderRouteMap";
+import { OrderChat } from "@/components/chat/OrderChat";
 import type { OrderExtended, OrderStatus } from "@/lib/db/types";
 
 export const metadata: Metadata = {
@@ -452,6 +453,21 @@ export default async function OrderDetailPage(
                   }
                 />
               </section>
+
+              {/* Mensajes — chat comprador ↔ productor ↔ logística.
+                  Solo para quienes pueden chatear vía /api/messages (la
+                  logística sin asignar ve el pedido pero no el chat). */}
+              {(isAdmin ||
+                isOwnerCliente ||
+                isInvolvedProductor ||
+                isAssignedLogistica) && (
+                <section>
+                  <p className="text-[11px] uppercase tracking-wider text-muted mb-2">
+                    Mensajes
+                  </p>
+                  <OrderChat orderId={order.id} />
+                </section>
+              )}
 
               {order.notes && (
                 <section className="rounded-2xl border border-border-soft bg-surface p-5">

@@ -4,6 +4,7 @@ import "./globals.css";
 import { CountrySelectorModal } from "@/components/country/CountrySelectorModal";
 import { CookieConsent } from "@/components/CookieConsent";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
           {children}
           <CountrySelectorModal />
           <CookieConsent />
+          <GlobalSearch />
         </SessionProvider>
       </body>
     </html>
