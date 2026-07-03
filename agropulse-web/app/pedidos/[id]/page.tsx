@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/Button";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { ordersDb, usersDb } from "@/lib/db/store";
 import { formatPriceByCode, getCountry } from "@/lib/countries";
-import { ensureProgress } from "@/lib/orders/progression";
+import { ensureProgress } from "@/lib/orders/progression-server";
 import { OrderStatusStream } from "@/components/realtime/OrderStatusStream";
 import { OrderActions } from "@/components/pedidos/OrderActions";
 import { OrderRouteMap } from "@/components/pedidos/OrderRouteMap";
@@ -64,14 +64,14 @@ function statusVariant(
   }
 }
 
-function listOrdersFor(
+async function listOrdersFor(
   role: string,
   userId: string,
-): OrderExtended[] {
-  if (role === "admin") return ordersDb.listAll();
-  if (role === "cliente") return ordersDb.listByCustomer(userId);
-  if (role === "productor") return ordersDb.listByProductor(userId);
-  if (role === "logistica") return ordersDb.listByLogistica(userId);
+): Promise<OrderExtended[]> {
+  if (role === "admin") return await ordersDb.listAll();
+  if (role === "cliente") return await ordersDb.listByCustomer(userId);
+  if (role === "productor") return await ordersDb.listByProductor(userId);
+  if (role === "logistica") return await ordersDb.listByLogistica(userId);
   return [];
 }
 
@@ -195,13 +195,14 @@ export default async function OrderDetailPage(
   if (!user) redirect(`/login?from=/pedidos/${id}`);
 
   // Progresión determinística ANTES de renderizar (monótona, según reloj).
-  const found = ordersDb.findById(id);
-  const order = found ? ensureProgress(found) : undefined;
+  const found = await ordersDb.findById(id);
+  const order = found ? await ensureProgress(found) : undefined;
 
   // Helper: pedidos del usuario para mostrar en el 404
-  const myRecent = listOrdersFor(user.role, user.id)
-    .map((o) => ensureProgress(o))
-    .slice(0, 5);
+  const myOrders = await listOrdersFor(user.role, user.id);
+  const myRecent = await Promise.all(
+    myOrders.slice(0, 5).map((o) => ensureProgress(o)),
+  );
 
   if (!order) {
     return <OrderNotFoundView id={id} recentOrders={myRecent} />;
@@ -231,9 +232,9 @@ export default async function OrderDetailPage(
   }
 
   const country = getCountry(order.country);
-  const productor = usersDb.findById(order.items[0]?.productorId ?? "");
+  const productor = await usersDb.findById(order.items[0]?.productorId ?? "");
   const logistica = order.logisticaUserId
-    ? usersDb.findById(order.logisticaUserId)
+    ? await usersDb.findById(order.logisticaUserId)
     : null;
 
   return (

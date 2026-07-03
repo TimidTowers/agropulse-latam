@@ -26,14 +26,14 @@ export async function GET(req: NextRequest) {
       .filter(Boolean)
       .slice(0, 100);
     for (const id of ids) {
-      const v = getEffectiveStockFor(id);
+      const v = await getEffectiveStockFor(id);
       if (v !== null) stocks[id] = v;
     }
   } else if (
     countryParam &&
     COUNTRIES.some((c) => c.code === countryParam)
   ) {
-    stocks = getStocksForCountry(countryParam as CountryCode);
+    stocks = await getStocksForCountry(countryParam as CountryCode);
   } else {
     return Response.json(
       { ok: false, error: "missing_ids_or_country" },

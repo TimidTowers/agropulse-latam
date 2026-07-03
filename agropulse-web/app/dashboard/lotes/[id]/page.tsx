@@ -18,7 +18,7 @@ export default async function EditLotPage(
   const { id } = await props.params;
   const user = await requireProductorDashboard(`/dashboard/lotes/${id}`);
 
-  const lot = lotsDb.findById(id);
+  const lot = await lotsDb.findById(id);
   if (!lot) notFound();
 
   // permisos: dueño o admin

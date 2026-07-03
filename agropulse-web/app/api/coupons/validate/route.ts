@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       { status: 401 },
     );
   }
-  const user = usersDb.findById(session.user.id);
+  const user = await usersDb.findById(session.user.id);
   if (!user) {
     return Response.json(
       { ok: false, reason: "Usuario no encontrado" },
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const coupon = couponsDb.findByCode(parsed.data.code);
+  const coupon = await couponsDb.findByCode(parsed.data.code);
   const result = validateCoupon(coupon, {
     role: user.role,
     country: user.country,

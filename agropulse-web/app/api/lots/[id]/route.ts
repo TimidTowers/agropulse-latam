@@ -37,7 +37,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
-  const lot = lotsDb.findById(id);
+  const lot = await lotsDb.findById(id);
   if (!lot) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
   }
@@ -62,7 +62,7 @@ export async function PATCH(
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
   const { id } = await ctx.params;
-  const lot = lotsDb.findById(id);
+  const lot = await lotsDb.findById(id);
   if (!lot) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
   }
@@ -130,8 +130,8 @@ export async function PATCH(
   }
   if (data.status !== undefined) patch.status = data.status;
 
-  const updated = lotsDb.update(id, patch);
-  auditDb.add({
+  const updated = await lotsDb.update(id, patch);
+  await auditDb.add({
     userId: session.user.id,
     userEmail: session.user.email,
     userRole: session.user.role,
@@ -156,12 +156,12 @@ export async function DELETE(
     return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
   const { id } = await ctx.params;
-  const lot = lotsDb.findById(id);
+  const lot = await lotsDb.findById(id);
   if (!lot) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
   }
-  lotsDb.update(id, { status: "retirado" });
-  auditDb.add({
+  await lotsDb.update(id, { status: "retirado" });
+  await auditDb.add({
     userId: session.user.id,
     userEmail: session.user.email,
     userRole: "admin",

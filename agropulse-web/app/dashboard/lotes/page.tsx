@@ -52,7 +52,9 @@ export default async function LotesPage() {
   const info = CURRENCIES[currency];
 
   const lots =
-    user.role === "admin" ? lotsDb.listAll() : lotsDb.listByProductor(user.id);
+    user.role === "admin"
+      ? await lotsDb.listAll()
+      : await lotsDb.listByProductor(user.id);
 
   return (
     <Container className="py-10">

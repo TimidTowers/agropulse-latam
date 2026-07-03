@@ -7,7 +7,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ordersDb, usersDb, auditDb } from "@/lib/db/store";
 import { ORDER_STATUS_FLOW, type OrderStatus } from "@/lib/db/types";
-import { ensureProgress } from "@/lib/orders/progression";
+import { ensureProgress } from "@/lib/orders/progression-server";
 import { sendEmail } from "@/lib/notifications/email";
 import { orderStatusEmail } from "@/lib/notifications/templates";
 
@@ -59,10 +59,10 @@ export async function GET(
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
   const { id } = await ctx.params;
-  const found = ordersDb.findById(id);
+  const found = await ordersDb.findById(id);
   // Avance determinístico ANTES de evaluar permisos/responder — el estado
   // devuelto siempre refleja el tiempo transcurrido (monótono).
-  const order = found ? ensureProgress(found) : undefined;
+  const order = found ? await ensureProgress(found) : undefined;
   // Defensa en profundidad: no exponer si existe o no cuando el usuario
   // no tiene permisos — siempre devolver el mismo 404.
   if (!order || !canView(order, session.user)) {
@@ -80,7 +80,7 @@ export async function PATCH(
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
   const { id } = await ctx.params;
-  const order = ordersDb.findById(id);
+  const order = await ordersDb.findById(id);
   // Defensa en profundidad: 404 plano si no existe O no tiene permisos.
   if (!order || !canView(order, session.user)) {
     return Response.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -117,14 +117,14 @@ export async function PATCH(
         { status: 403 },
       );
     }
-    const logUser = usersDb.findById(logisticaUserId);
+    const logUser = await usersDb.findById(logisticaUserId);
     if (!logUser || logUser.role !== "logistica") {
       return Response.json(
         { ok: false, error: "invalid_logistica_user" },
         { status: 400 },
       );
     }
-    ordersDb.update(order.id, { logisticaUserId });
+    await ordersDb.update(order.id, { logisticaUserId });
   }
 
   // 2. Cambio de estado
@@ -188,9 +188,9 @@ export async function PATCH(
       );
     }
 
-    ordersDb.updateStatus(order.id, status, note, session.user.id, userRole);
+    await ordersDb.updateStatus(order.id, status, note, session.user.id, userRole);
 
-    auditDb.add({
+    await auditDb.add({
       userId: session.user.id,
       userEmail: session.user.email,
       userRole: userRole,
@@ -202,7 +202,7 @@ export async function PATCH(
     });
 
     // Notificar al cliente con la plantilla de cambio de estado.
-    const fresh = ordersDb.findById(order.id);
+    const fresh = await ordersDb.findById(order.id);
     if (fresh) {
       const tpl = orderStatusEmail({
         order: fresh,
@@ -224,6 +224,6 @@ export async function PATCH(
     }
   }
 
-  const updated = ordersDb.findById(order.id);
+  const updated = await ordersDb.findById(order.id);
   return Response.json({ ok: true, order: updated });
 }

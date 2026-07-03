@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const url = new URL(req.url);
   const mode = url.searchParams.get("mode") ?? "challenge";
 
-  const fresh = usersDb.findById(me.id);
+  const fresh = await usersDb.findById(me.id);
   if (!fresh?.twoFactorSecret) {
     return NextResponse.json(
       { ok: false, error: "No hay 2FA configurado" },
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
   const result = await verifyOtp({ secret: fresh.twoFactorSecret, token: code });
   if (!result.valid) {
-    auditDb.add({
+    await auditDb.add({
       userId: me.id,
       userEmail: me.email,
       userRole: me.role,
@@ -60,8 +60,8 @@ export async function POST(req: Request) {
   }
 
   if (mode === "activate") {
-    usersDb.update(me.id, { twoFactorEnabled: true });
-    auditDb.add({
+    await usersDb.update(me.id, { twoFactorEnabled: true });
+    await auditDb.add({
       userId: me.id,
       userEmail: me.email,
       userRole: me.role,

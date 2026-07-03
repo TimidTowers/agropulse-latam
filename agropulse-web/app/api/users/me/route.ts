@@ -52,7 +52,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: false, error: "JSON inválido" }, { status: 400 });
   }
 
-  const fresh = usersDb.findById(me.id);
+  const fresh = await usersDb.findById(me.id);
   if (!fresh) {
     return NextResponse.json({ ok: false, error: "Usuario no encontrado" }, { status: 404 });
   }
@@ -83,7 +83,7 @@ export async function PATCH(req: Request) {
     currencyParsed.data.preferredCurrency !== undefined;
 
   if (isCurrencyOnly) {
-    const updated = usersDb.update(me.id, {
+    const updated = await usersDb.update(me.id, {
       preferredCurrency: currencyParsed.data.preferredCurrency,
     });
     if (!updated) {
@@ -92,7 +92,7 @@ export async function PATCH(req: Request) {
         { status: 500 },
       );
     }
-    auditDb.add({
+    await auditDb.add({
       userId: me.id,
       userEmail: me.email,
       userRole: me.role,
@@ -172,12 +172,12 @@ export async function PATCH(req: Request) {
     patch.passwordHash = await hash(pw.data.newPassword, 10);
   }
 
-  const updated = usersDb.update(me.id, patch);
+  const updated = await usersDb.update(me.id, patch);
   if (!updated) {
     return NextResponse.json({ ok: false, error: "No se pudo actualizar" }, { status: 500 });
   }
 
-  auditDb.add({
+  await auditDb.add({
     userId: me.id,
     userEmail: me.email,
     userRole: me.role,

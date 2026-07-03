@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: "Usuarios — Admin AgroPulse",
 };
 
-export default function AdminUsersPage() {
-  const users = usersDb.list().map(toPublicUser);
+export default async function AdminUsersPage() {
+  const users = (await usersDb.list()).map(toPublicUser);
   return (
     <main className="p-6 lg:p-10">
       <header>

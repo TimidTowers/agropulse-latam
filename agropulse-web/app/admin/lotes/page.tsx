@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Lotes — Admin AgroPulse",
 };
 
-export default function AdminLotsPage() {
-  const lots = lotsDb.listAll();
+export default async function AdminLotsPage() {
+  const lots = await lotsDb.listAll();
   return (
     <main className="p-6 lg:p-10">
       <header>

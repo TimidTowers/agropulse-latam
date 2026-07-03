@@ -38,7 +38,7 @@ export async function PATCH(
     return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
   }
 
-  const target = usersDb.findById(id);
+  const target = await usersDb.findById(id);
   if (!target) {
     return NextResponse.json({ ok: false, error: "Usuario no encontrado" }, { status: 404 });
   }
@@ -50,22 +50,22 @@ export async function PATCH(
   if (parsed.data.blocked === true) {
     const until = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString();
     // colocamos directamente en el attempts store
-    authAttemptsDb.registerFailure(target.email); // crea/incrementa
+    await authAttemptsDb.registerFailure(target.email); // crea/incrementa
     // luego sobreescribimos con lockedUntil largo
     // hack para la demo: usamos la API pública existente
     for (let i = 0; i < 10; i++) authAttemptsDb.registerFailure(target.email);
     void until;
   }
   if (parsed.data.unlock === true) {
-    authAttemptsDb.reset(target.email);
+    await authAttemptsDb.reset(target.email);
   }
 
-  const updated = usersDb.update(id, patch);
+  const updated = await usersDb.update(id, patch);
   if (!updated) {
     return NextResponse.json({ ok: false, error: "No se pudo actualizar" }, { status: 500 });
   }
 
-  auditDb.add({
+  await auditDb.add({
     userId: actor.id,
     userEmail: actor.email,
     userRole: actor.role,
@@ -89,7 +89,7 @@ export async function DELETE(
     return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
   const { id } = await ctx.params;
-  const target = usersDb.findById(id);
+  const target = await usersDb.findById(id);
   if (!target) {
     return NextResponse.json({ ok: false, error: "Usuario no encontrado" }, { status: 404 });
   }
@@ -99,8 +99,8 @@ export async function DELETE(
       { status: 400 },
     );
   }
-  usersDb.delete(id);
-  auditDb.add({
+  await usersDb.delete(id);
+  await auditDb.add({
     userId: actor.id,
     userEmail: actor.email,
     userRole: actor.role,

@@ -31,9 +31,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !password) return null;
 
         // 1. Rate limit: si está bloqueado, rechazar inmediatamente
-        const locked = authAttemptsDb.isLocked(email);
+        const locked = await authAttemptsDb.isLocked(email);
         if (locked.locked) {
-          auditDb.add({
+          await auditDb.add({
             userEmail: email,
             action: "auth.locked",
             success: false,
@@ -44,10 +44,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // 2. Buscar usuario
-        const user = usersDb.findByEmail(email);
+        const user = await usersDb.findByEmail(email);
         if (!user) {
-          authAttemptsDb.registerFailure(email);
-          auditDb.add({
+          await authAttemptsDb.registerFailure(email);
+          await auditDb.add({
             userEmail: email,
             action: "auth.login_failed",
             success: false,
@@ -59,8 +59,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // 3. Verificar password
         const ok = await compare(password, user.passwordHash);
         if (!ok) {
-          const r = authAttemptsDb.registerFailure(email);
-          auditDb.add({
+          const r = await authAttemptsDb.registerFailure(email);
+          await auditDb.add({
             userId: user.id,
             userEmail: email,
             userRole: user.role,
@@ -75,9 +75,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // 4. Éxito — reset rate limit + audit + lastLogin
-        authAttemptsDb.reset(email);
-        usersDb.update(user.id, { lastLoginAt: new Date().toISOString() });
-        auditDb.add({
+        await authAttemptsDb.reset(email);
+        await usersDb.update(user.id, { lastLoginAt: new Date().toISOString() });
+        await auditDb.add({
           userId: user.id,
           userEmail: user.email,
           userRole: user.role,

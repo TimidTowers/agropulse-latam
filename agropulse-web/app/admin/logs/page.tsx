@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Audit logs — Admin AgroPulse",
 };
 
-export default function AdminLogsPage() {
-  const logs = auditDb.list(500);
+export default async function AdminLogsPage() {
+  const logs = await auditDb.list(500);
   return (
     <main className="p-6 lg:p-10">
       <header>

@@ -40,13 +40,13 @@ export async function generateStaticParams() {
  * se renderizan on-demand en el server (dynamicParams=true por defecto),
  * donde lotsDb SÍ está disponible.
  */
-function resolveProductOrLot(id: string): {
+async function resolveProductOrLot(id: string): Promise<{
   product: Product | undefined;
   isDynamicLot: boolean;
-} {
+}> {
   const staticProduct = getProductById(id);
   if (staticProduct) return { product: staticProduct, isDynamicLot: false };
-  const lot = lotsDb.findById(id);
+  const lot = await lotsDb.findById(id);
   if (lot) return { product: lotToProductView(lot), isDynamicLot: true };
   return { product: undefined, isDynamicLot: false };
 }
@@ -55,7 +55,7 @@ export async function generateMetadata(
   props: PageProps<"/marketplace/[id]">,
 ): Promise<Metadata> {
   const { id } = await props.params;
-  const { product: p } = resolveProductOrLot(id);
+  const { product: p } = await resolveProductOrLot(id);
   if (!p) return { title: "Lote no encontrado — AgroPulse" };
   return {
     title: `${p.nombre} — ${p.productor.nombre} | AgroPulse`,
@@ -98,7 +98,7 @@ export default async function ProductPage(
   props: PageProps<"/marketplace/[id]">,
 ) {
   const { id } = await props.params;
-  const { product: p, isDynamicLot } = resolveProductOrLot(id);
+  const { product: p, isDynamicLot } = await resolveProductOrLot(id);
   if (!p) return <LotNotFound />;
 
   const urgVariant =

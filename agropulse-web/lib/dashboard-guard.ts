@@ -32,7 +32,7 @@ export async function requireProductorDashboard(
   }
 
   // rol prohibido → registrar y redirigir
-  auditDb.add({
+  await auditDb.add({
     userId: user.id,
     userEmail: user.email,
     userRole: user.role,

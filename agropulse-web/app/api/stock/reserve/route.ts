@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
   }
   const { productId, quantity, unit } = parsed.data;
 
-  reservationsDb.upsert(session.user.id, productId, quantity, unit);
+  await reservationsDb.upsert(session.user.id, productId, quantity, unit);
 
-  auditDb.add({
+  await auditDb.add({
     userId: session.user.id,
     userEmail: session.user.email ?? undefined,
     userRole: session.user.role,
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     metadata: { quantity, unit },
   });
 
-  const effectiveStock = getEffectiveStockFor(productId) ?? 0;
+  const effectiveStock = (await getEffectiveStockFor(productId)) ?? 0;
   return Response.json({ ok: true, effectiveStock });
 }
 
@@ -69,9 +69,9 @@ export async function DELETE() {
     return Response.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
 
-  reservationsDb.releaseAllByUser(session.user.id);
+  await reservationsDb.releaseAllByUser(session.user.id);
 
-  auditDb.add({
+  await auditDb.add({
     userId: session.user.id,
     userEmail: session.user.email ?? undefined,
     userRole: session.user.role,

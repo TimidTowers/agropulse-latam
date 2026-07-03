@@ -21,7 +21,7 @@ export default async function CheckoutPage() {
     redirect("/marketplace");
   }
 
-  const paymentMethods = paymentMethodsDb.listByCountry(user.country);
+  const paymentMethods = await paymentMethodsDb.listByCountry(user.country);
 
   return (
     <>

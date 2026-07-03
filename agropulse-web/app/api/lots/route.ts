@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   const statusParam = url.searchParams.get("status");
   const categoryParam = url.searchParams.get("category");
 
-  let lots = lotsDb.listAll();
+  let lots = await lotsDb.listAll();
 
   if (productorId) lots = lots.filter((l) => l.productorId === productorId);
   if (countryParam && COUNTRIES.some((c) => c.code === countryParam)) {
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  const user = usersDb.findById(session.user.id);
+  const user = await usersDb.findById(session.user.id);
   if (!user) {
     return Response.json({ ok: false, error: "user_not_found" }, { status: 401 });
   }
@@ -141,9 +141,9 @@ export async function POST(req: NextRequest) {
     createdBy: user.id,
   };
 
-  lotsDb.create(lot);
+  await lotsDb.create(lot);
 
-  auditDb.add({
+  await auditDb.add({
     userId: user.id,
     userEmail: user.email,
     userRole: user.role,

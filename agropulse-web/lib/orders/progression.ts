@@ -17,9 +17,13 @@
  * - Pedidos cancelados o entregados nunca cambian.
  * - El avance manual convive con el automático: el estado efectivo es el
  *   MÁXIMO entre el almacenado y el derivado del tiempo (monotónico).
+ *
+ * IMPORTANTE: este archivo contiene SOLO funciones puras (sin imports de la
+ * store) porque lo consumen client components (OrderRouteMapView usa
+ * computeRouteProgress). La persistencia del avance (ensureProgress) vive en
+ * lib/orders/progression-server.ts — server-only.
  */
 import { ORDER_STATUS_FLOW, type OrderExtended, type OrderStatus } from "@/lib/db/types";
-import { ordersDb } from "@/lib/db/store";
 
 /**
  * Minutos acumulados desde createdAt para alcanzar cada etapa del flow.
@@ -42,31 +46,6 @@ export function computeTimeIndex(createdAt: string, nowMs: number = Date.now()):
     if (elapsedMin >= STAGE_ELAPSED_MINUTES[i]) idx = i;
   }
   return idx;
-}
-
-/**
- * Aplica el avance automático pendiente a un pedido y lo persiste en la
- * store (una entrada de historial por etapa saltada). Devuelve el pedido
- * actualizado. Idempotente: llamadas repetidas no duplican historial.
- */
-export function ensureProgress(order: OrderExtended): OrderExtended {
-  if (order.status === "cancelado" || order.status === "entregado") return order;
-  if (order.autoProgress === false) return order;
-  const current = statusIndex(order.status);
-  const target = computeTimeIndex(order.createdAt);
-  if (target <= current) return order;
-  let updated: OrderExtended = order;
-  for (let i = current + 1; i <= target; i++) {
-    const next = ordersDb.updateStatus(
-      order.id,
-      ORDER_STATUS_FLOW[i],
-      "Avance automático (demo)",
-      "system",
-      "admin",
-    );
-    if (next) updated = next;
-  }
-  return updated;
 }
 
 /**

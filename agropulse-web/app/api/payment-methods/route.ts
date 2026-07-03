@@ -25,6 +25,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const methods = paymentMethodsDb.listByCountry(country);
+  const methods = await paymentMethodsDb.listByCountry(country);
   return Response.json({ ok: true, country, methods });
 }

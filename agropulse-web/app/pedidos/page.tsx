@@ -6,7 +6,7 @@ import { Container } from "@/components/ui/Container";
 import { OrdersList } from "@/components/pedidos/OrdersList";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { ordersDb } from "@/lib/db/store";
-import { ensureProgress } from "@/lib/orders/progression";
+import { ensureProgress } from "@/lib/orders/progression-server";
 import type { OrderExtended } from "@/lib/db/types";
 
 export const metadata: Metadata = {
@@ -19,14 +19,14 @@ export default async function PedidosPage() {
   if (!user) redirect("/login?from=/pedidos");
 
   let orders: OrderExtended[] = [];
-  if (user.role === "admin") orders = ordersDb.listAll();
-  else if (user.role === "cliente") orders = ordersDb.listByCustomer(user.id);
-  else if (user.role === "productor") orders = ordersDb.listByProductor(user.id);
-  else if (user.role === "logistica") orders = ordersDb.listByLogistica(user.id);
+  if (user.role === "admin") orders = await ordersDb.listAll();
+  else if (user.role === "cliente") orders = await ordersDb.listByCustomer(user.id);
+  else if (user.role === "productor") orders = await ordersDb.listByProductor(user.id);
+  else if (user.role === "logistica") orders = await ordersDb.listByLogistica(user.id);
 
   // Progresión determinística: el estado se deriva del tiempo transcurrido
   // (monótono, nunca retrocede) ANTES de renderizar.
-  orders = orders.map((o) => ensureProgress(o));
+  orders = await Promise.all(orders.map((o) => ensureProgress(o)));
 
   return (
     <>

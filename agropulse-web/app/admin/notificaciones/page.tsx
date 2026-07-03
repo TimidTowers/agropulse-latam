@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   title: "Notificaciones — Admin AgroPulse",
 };
 
-export default function AdminNotifsPage() {
-  const notifs = notificationsDb.list(200);
+export default async function AdminNotifsPage() {
+  const notifs = await notificationsDb.list(200);
   const emailOn = isEmailEnabled();
   const waOn = isWhatsAppEnabled();
   return (

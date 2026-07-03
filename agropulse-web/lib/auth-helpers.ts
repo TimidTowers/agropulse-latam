@@ -17,7 +17,7 @@ export async function getSession() {
 export async function getCurrentUser(): Promise<PublicUser | null> {
   const s = await auth();
   if (!s?.user?.id) return null;
-  const u = usersDb.findById(s.user.id);
+  const u = await usersDb.findById(s.user.id);
   return u ? toPublicUser(u) : null;
 }
 

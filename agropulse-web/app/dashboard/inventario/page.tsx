@@ -27,7 +27,9 @@ export default async function InventarioPage() {
 
   // Sólo lotes del productor (admin ve todos)
   const allLots =
-    user.role === "admin" ? lotsDb.listAll() : lotsDb.listByProductor(user.id);
+    user.role === "admin"
+      ? await lotsDb.listAll()
+      : await lotsDb.listByProductor(user.id);
   const activeLots = allLots.filter((l) => l.status !== "retirado");
 
   const lotes = activeLots.map((l) => {

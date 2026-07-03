@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     metadata: { fromEmail: body.email },
   });
 
-  auditDb.add({
+  await auditDb.add({
     userEmail: body.email,
     action: "contact.message",
     success: true,

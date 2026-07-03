@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const fresh = usersDb.findById(me.id);
+  const fresh = await usersDb.findById(me.id);
   if (!fresh || !fresh.twoFactorSecret) {
     return NextResponse.json(
       { ok: false, error: "2FA no está activo" },
@@ -58,10 +58,10 @@ export async function POST(req: Request) {
     );
   }
 
-  usersDb.update(me.id, { twoFactorEnabled: false, twoFactorSecret: undefined });
+  await usersDb.update(me.id, { twoFactorEnabled: false, twoFactorSecret: undefined });
   await clear2faConfirmed();
 
-  auditDb.add({
+  await auditDb.add({
     userId: me.id,
     userEmail: me.email,
     userRole: me.role,

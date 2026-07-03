@@ -13,6 +13,6 @@ export async function GET() {
   } catch {
     return NextResponse.json({ ok: false, error: "FORBIDDEN" }, { status: 403 });
   }
-  const users = usersDb.list().map(toPublicUser);
+  const users = (await usersDb.list()).map(toPublicUser);
   return NextResponse.json({ ok: true, users });
 }

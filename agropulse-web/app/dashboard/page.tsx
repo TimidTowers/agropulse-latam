@@ -52,8 +52,8 @@ export default async function DashboardPage() {
   const userCurrencyInfo = CURRENCIES[currency];
 
   // KPIs reales del productor
-  const myLots = lotsDb.listByProductor(user.id);
-  const myOrders = ordersDb.listByProductor(user.id);
+  const myLots = await lotsDb.listByProductor(user.id);
+  const myOrders = await ordersDb.listByProductor(user.id);
   const activeLots = myLots.filter((l) => l.status === "activo");
 
   // Ventas: suma de items que le corresponden al productor en sus pedidos

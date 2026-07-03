@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       send("tick", {
         ts: new Date().toISOString(),
         country,
-        stocks: getStocksForCountry(country),
+        stocks: await getStocksForCountry(country),
       });
       if (i < TICKS_PER_SESSION - 1) await sleep(TICK_MS);
     }

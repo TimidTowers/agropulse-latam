@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default async function PerfilPage() {
   const me = await getCurrentUser();
   if (!me) redirect("/login?from=/perfil");
-  const sessions = sessionsDb.listByUser(me.id);
+  const sessions = await sessionsDb.listByUser(me.id);
   const country = getCountry(me.country);
 
   return (

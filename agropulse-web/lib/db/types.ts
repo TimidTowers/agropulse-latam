@@ -390,6 +390,20 @@ export interface Coupon {
 }
 
 // ============================================================================
+// CHAT MESSAGES — mensajería por pedido (cliente ↔ productor ↔ logística)
+// ============================================================================
+
+export interface ChatMessage {
+  id: string;
+  orderId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: UserRole;
+  body: string;
+  createdAt: string;
+}
+
+// ============================================================================
 // SESSIONS (simplified for demo — real auth uses JWT cookie)
 // ============================================================================
 

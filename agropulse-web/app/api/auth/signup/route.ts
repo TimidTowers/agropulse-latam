@@ -48,8 +48,8 @@ export async function POST(req: Request) {
   const d = parsed.data;
   const email = d.email.trim().toLowerCase();
 
-  if (usersDb.findByEmail(email)) {
-    auditDb.add({
+  if (await usersDb.findByEmail(email)) {
+    await auditDb.add({
       userEmail: email,
       action: "auth.login_failed",
       success: false,
@@ -89,9 +89,9 @@ export async function POST(req: Request) {
     createdAt: new Date().toISOString(),
   };
 
-  usersDb.create(user);
+  await usersDb.create(user);
 
-  auditDb.add({
+  await auditDb.add({
     userId: user.id,
     userEmail: user.email,
     userRole: user.role,

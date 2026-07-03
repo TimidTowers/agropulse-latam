@@ -16,7 +16,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { ordersDb } from "@/lib/db/store";
 import type { OrderExtended } from "@/lib/db/types";
-import { ensureProgress } from "@/lib/orders/progression";
+import { ensureProgress } from "@/lib/orders/progression-server";
 import { createSseStream, sleep } from "@/lib/realtime/sse";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,7 @@ export async function GET(
   const { id } = await ctx.params;
 
   return createSseStream<OrderTick>(async (send, close) => {
-    const initial = ordersDb.findById(id);
+    const initial = await ordersDb.findById(id);
     if (!initial) {
       send("tick", {
         ts: new Date().toISOString(),
@@ -55,7 +55,7 @@ export async function GET(
     }
 
     // Estado inicial con avance determinístico aplicado.
-    send("tick", { ts: new Date().toISOString(), order: ensureProgress(initial) });
+    send("tick", { ts: new Date().toISOString(), order: await ensureProgress(initial) });
 
     // Tick loop: cada ~1500ms re-lee, aplica ensureProgress (monótono, según
     // reloj) y emite. El stream cierra a ~9s y el cliente reconecta
@@ -64,7 +64,7 @@ export async function GET(
     while (Date.now() - startedAt < 8500) {
       await sleep(1500);
 
-      const current = ordersDb.findById(id);
+      const current = await ordersDb.findById(id);
       if (!current) {
         send("tick", { ts: new Date().toISOString(), order: null, notFound: true });
         break;
@@ -73,7 +73,7 @@ export async function GET(
       // Avance derivado del tiempo transcurrido — nunca aleatorio, nunca
       // retrocede. Mismo payload en heartbeat para que el reloj de la UI
       // se actualice.
-      send("tick", { ts: new Date().toISOString(), order: ensureProgress(current) });
+      send("tick", { ts: new Date().toISOString(), order: await ensureProgress(current) });
     }
   });
 }

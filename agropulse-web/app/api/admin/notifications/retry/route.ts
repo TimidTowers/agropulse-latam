@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (!id) {
     return NextResponse.json({ ok: false, error: "id requerido" }, { status: 400 });
   }
-  const all = notificationsDb.list(500);
+  const all = await notificationsDb.list(500);
   const target = all.find((n) => n.id === id);
   if (!target) {
     return NextResponse.json({ ok: false, error: "Notificación no encontrada" }, { status: 404 });

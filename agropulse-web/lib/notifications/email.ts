@@ -48,7 +48,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
 
   // Si no hay Resend, encolar y reportar deshabilitado
   if (!resend) {
-    const n = notificationsDb.add({
+    const n = await notificationsDb.add({
       channel: "email",
       to: recipient,
       subject: msg.subject,
@@ -62,7 +62,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
   }
 
   // Crear notificación pendiente
-  const n = notificationsDb.add({
+  const n = await notificationsDb.add({
     channel: "email",
     to: recipient,
     subject: msg.subject,
@@ -82,14 +82,14 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
       text: msg.text,
     });
     if (res.error) {
-      notificationsDb.markFailed(n.id, res.error.message ?? "Resend error");
+      await notificationsDb.markFailed(n.id, res.error.message ?? "Resend error");
       return { ok: false, error: res.error.message };
     }
-    notificationsDb.markSent(n.id);
+    await notificationsDb.markSent(n.id);
     return { ok: true, id: res.data?.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
-    notificationsDb.markFailed(n.id, message);
+    await notificationsDb.markFailed(n.id, message);
     return { ok: false, error: message };
   }
 }

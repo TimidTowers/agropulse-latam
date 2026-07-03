@@ -36,7 +36,7 @@ export interface WhatsAppResult {
 
 export async function sendWhatsApp(msg: WhatsAppMessage): Promise<WhatsAppResult> {
   if (!WHATSAPP_ENABLED) {
-    const n = notificationsDb.add({
+    const n = await notificationsDb.add({
       channel: "whatsapp",
       to: msg.to,
       body: msg.body,
@@ -48,7 +48,7 @@ export async function sendWhatsApp(msg: WhatsAppMessage): Promise<WhatsAppResult
     return { ok: true, queued: true, id: n.id };
   }
 
-  const n = notificationsDb.add({
+  const n = await notificationsDb.add({
     channel: "whatsapp",
     to: msg.to,
     body: msg.body,
@@ -77,15 +77,15 @@ export async function sendWhatsApp(msg: WhatsAppMessage): Promise<WhatsAppResult
     });
     if (!res.ok) {
       const text = await res.text();
-      notificationsDb.markFailed(n.id, `${res.status} ${text}`);
+      await notificationsDb.markFailed(n.id, `${res.status} ${text}`);
       return { ok: false, error: `${res.status} ${text}` };
     }
     const data = (await res.json()) as { sid?: string };
-    notificationsDb.markSent(n.id);
+    await notificationsDb.markSent(n.id);
     return { ok: true, id: data.sid };
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown error";
-    notificationsDb.markFailed(n.id, message);
+    await notificationsDb.markFailed(n.id, message);
     return { ok: false, error: message };
   }
 }

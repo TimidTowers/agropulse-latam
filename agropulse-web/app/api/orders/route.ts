@@ -69,9 +69,9 @@ const createOrderSchema = z.object({
   couponCode: z.string().min(1).max(40).optional(),
 });
 
-function nextShortCode(): string {
+async function nextShortCode(): Promise<string> {
   // genera secuencial AP-2026-XXXX desde ordersDb.count
-  const seq = ordersDb.count() + 1;
+  const seq = (await ordersDb.count()) + 1;
   const padded = String(seq).padStart(4, "0");
   return `AP-2026-${padded}`;
 }
@@ -85,16 +85,16 @@ export async function GET() {
   const role = session.user.role;
   const uid = session.user.id;
   let orders: OrderExtended[];
-  if (role === "admin") orders = ordersDb.listAll();
-  else if (role === "cliente") orders = ordersDb.listByCustomer(uid);
+  if (role === "admin") orders = await ordersDb.listAll();
+  else if (role === "cliente") orders = await ordersDb.listByCustomer(uid);
   else if (role === "productor") {
     // Un productor ve los pedidos que VENDE y también los que COMPRA
     // (los productores pueden comprar con descuento automático del 8%).
     const merged = new Map<string, OrderExtended>();
-    for (const o of ordersDb.listByProductor(uid)) merged.set(o.id, o);
-    for (const o of ordersDb.listByCustomer(uid)) merged.set(o.id, o);
+    for (const o of await ordersDb.listByProductor(uid)) merged.set(o.id, o);
+    for (const o of await ordersDb.listByCustomer(uid)) merged.set(o.id, o);
     orders = Array.from(merged.values());
-  } else if (role === "logistica") orders = ordersDb.listByLogistica(uid);
+  } else if (role === "logistica") orders = await ordersDb.listByLogistica(uid);
   else orders = [];
 
   return Response.json({ ok: true, orders });
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Validar país: todos los items y el cliente deben coincidir
-  const user = usersDb.findById(session.user.id);
+  const user = await usersDb.findById(session.user.id);
   if (!user) {
     return Response.json({ ok: false, error: "user_not_found" }, { status: 401 });
   }
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Verificar método de pago disponible para el país
-  const pm = paymentMethodsDb.findById(body.paymentMethodId);
+  const pm = await paymentMethodsDb.findById(body.paymentMethodId);
   if (!pm || !pm.countries.includes(orderCountry) || !pm.enabled) {
     return Response.json(
       { ok: false, error: "invalid_payment_method" },
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
   // en lo que validó el cliente en /api/coupons/validate.
   let coupon: Coupon | null = null;
   if (body.couponCode) {
-    const found = couponsDb.findByCode(body.couponCode);
+    const found = await couponsDb.findByCode(body.couponCode);
     const categories = Array.from(
       new Set(items.map((i) => i.category).filter((c): c is string => !!c)),
     );
@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
   const country = COUNTRIES.find((c) => c.code === orderCountry)!;
 
   const id = `o-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const shortCode = nextShortCode();
+  const shortCode = await nextShortCode();
   const now = new Date().toISOString();
   // estimación: 48h
   const estimated = new Date(Date.now() + 48 * 3600 * 1000).toISOString();
@@ -294,19 +294,19 @@ export async function POST(req: NextRequest) {
     discountTotal: discountTotal > 0 ? discountTotal : undefined,
   };
 
-  ordersDb.create(order);
+  await ordersDb.create(order);
 
   // Confirmación definitiva de stock: la reserva temporal (TTL 2h) pasa a
   // "confirmada" y las unidades se registran como vendidas — el stock
   // efectivo del marketplace baja de inmediato ("hay 10kg de uva menos").
   for (const it of items) {
-    reservationsDb.confirmByUserProduct(user.id, it.productId, order.id);
-    stockDb.addSold(it.productId, it.quantity);
+    await reservationsDb.confirmByUserProduct(user.id, it.productId, order.id);
+    await stockDb.addSold(it.productId, it.quantity);
   }
 
   if (coupon) {
-    couponsDb.incrementUse(coupon.code);
-    auditDb.add({
+    await couponsDb.incrementUse(coupon.code);
+    await auditDb.add({
       userId: user.id,
       userEmail: user.email,
       userRole: user.role,
@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  auditDb.add({
+  await auditDb.add({
     userId: user.id,
     userEmail: user.email,
     userRole: user.role,
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
   const productorIds = Array.from(new Set(items.map((i) => i.productorId)));
   const productorEmails: string[] = [];
   for (const pid of productorIds) {
-    const p = usersDb.findById(pid);
+    const p = await usersDb.findById(pid);
     if (p?.email) productorEmails.push(p.email);
   }
 

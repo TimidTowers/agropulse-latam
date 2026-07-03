@@ -13,12 +13,12 @@ export const metadata: Metadata = {
   title: "Admin — AgroPulse",
 };
 
-export default function AdminHomePage() {
-  const users = usersDb.list();
-  const orders = ordersDb.listAll();
-  const lots = lotsDb.listAll();
-  const notifs = notificationsDb.list(500);
-  const recentLogs = auditDb.list(20);
+export default async function AdminHomePage() {
+  const users = await usersDb.list();
+  const orders = await ordersDb.listAll();
+  const lots = await lotsDb.listAll();
+  const notifs = await notificationsDb.list(500);
+  const recentLogs = await auditDb.list(20);
 
   const failedNotifs = notifs.filter(
     (n) => n.status === "fallido" || n.status === "deshabilitado",

@@ -25,7 +25,7 @@ export async function POST() {
   const qrDataUrl = await QRCode.toDataURL(otpauth, { margin: 1, width: 240 });
 
   // Guardar secret pero NO activar todavía
-  usersDb.update(me.id, { twoFactorSecret: secret, twoFactorEnabled: false });
+  await usersDb.update(me.id, { twoFactorSecret: secret, twoFactorEnabled: false });
 
   return NextResponse.json({ ok: true, secret, otpauth, qr: qrDataUrl });
 }
