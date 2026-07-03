@@ -42,3 +42,7 @@ next-env.d.ts
 *.tmp
 ~$*.docx
 ~$*.pptx
+
+# Playwright
+/agropulse-web/test-results/
+/agropulse-web/playwright-report/
